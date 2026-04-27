@@ -1,0 +1,81 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Alpine.js: hide until initialized */
+[x-cloak] {
+    display: none !important;
+}
+
+@layer base {
+    input, select, textarea, button {
+        font-family: inherit;
+        font-size: 1rem;
+        line-height: 1.5;
+    }
+}
+
+/* Auth form inputs - consistent, clean styling */
+.auth-input {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    box-sizing: border-box;
+    min-height: 2.75rem;
+}
+.auth-input:focus {
+    box-shadow: 0 0 0 2px rgba(150, 122, 75, 0.35);
+}
+select.auth-input {
+    cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23967A4B'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m19 9-7 7-7-7'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 1.25rem;
+    padding-right: 2.5rem;
+}
+input[type="checkbox"].auth-checkbox {
+    accent-color: #967A4B;
+    min-height: 1rem;
+}
+
+/* Odontogram - styles (library CSS not exported, so we define needed rules) */
+.odontogram-wrapper .Odontogram svg {
+    color: var(--base-blue);
+    fill: none;
+    transition: all ease-in 125ms;
+}
+.odontogram-wrapper .Odontogram svg path:nth-of-type(2) {
+    opacity: 0;
+    transition: all ease-in 0.2s;
+}
+.odontogram-wrapper .Odontogram g.selected path:nth-of-type(2) {
+    fill: var(--light-blue);
+    opacity: 1;
+}
+.odontogram-wrapper .Odontogram g.selected {
+    color: var(--dark-blue);
+    transition: all 0.3s ease;
+}
+.odontogram-wrapper .Odontogram g.selected path {
+    stroke-width: 1.5;
+}
+.odontogram-wrapper .Odontogram g[class^="teeth-"]:hover path:nth-of-type(2) {
+    fill: var(--light-blue);
+    opacity: 1;
+}
+
+/* Assigned teeth - color via --assigned-fill (set per-tooth in JS) - not selectable */
+.odontogram-wrapper .Odontogram g.assigned path:nth-of-type(2) {
+    fill: var(--assigned-fill, #10b981);
+    opacity: 1;
+}
+.odontogram-wrapper .Odontogram g.assigned {
+    color: var(--assigned-fill, #059669);
+}
+.odontogram-wrapper .Odontogram g.assigned.selected {
+    color: var(--assigned-fill, #059669);
+}
+.odontogram-wrapper .Odontogram g.assigned {
+    cursor: default;
+}
