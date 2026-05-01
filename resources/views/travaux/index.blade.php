@@ -103,6 +103,8 @@
                                 <span class="inline-flex items-center rounded-full bg-amber-500/15 px-3 py-1 text-xs font-medium text-amber-300 ring-1 ring-amber-500/30">{{ $statutLabels[$t->statut] ?? $t->statut }}</span>
                             @elseif($t->statut === 'en_cours')
                                 <span class="inline-flex items-center rounded-full bg-blue-500/15 px-3 py-1 text-xs font-medium text-blue-300 ring-1 ring-blue-500/30">{{ $statutLabels[$t->statut] ?? $t->statut }}</span>
+                            @elseif($t->statut === 'en_essaiage')
+                                <span class="inline-flex items-center rounded-full bg-cyan-500/15 px-3 py-1 text-xs font-medium text-cyan-300 ring-1 ring-cyan-500/30">{{ $statutLabels[$t->statut] ?? $t->statut }}</span>
                             @else
                                 <span class="inline-flex items-center rounded-full bg-zinc-500/15 px-3 py-1 text-xs font-medium text-zinc-300 ring-1 ring-zinc-500/30">{{ $statutLabels[$t->statut] ?? $t->statut }}</span>
                             @endif

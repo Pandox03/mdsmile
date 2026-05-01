@@ -186,29 +186,30 @@ class DocsController extends Controller
     }
 
     /** Saisie des encaissements réservée au mois calendaire en cours. */
-    private function isSituationEncaissementEditable(int $year, int $month): bool
+    private function isSituationEncaissementEditable(Carbon $dateFrom, Carbon $dateTo): bool
     {
-        return Carbon::create($year, $month, 1)->isSameMonth(Carbon::now());
+        $now = Carbon::now();
+        return $dateFrom->isSameDay($now->copy()->startOfMonth()) && $dateTo->isSameDay($now->copy()->endOfMonth());
     }
 
-    private function monthlySituationSummary(Doc $doc, int $year, int $month): array
+    private function periodSituationSummary(Doc $doc, Carbon $dateFrom, Carbon $dateTo): array
     {
-        $monthStart = Carbon::create($year, $month, 1)->startOfMonth();
-        $monthEnd = (clone $monthStart)->endOfMonth();
+        $periodStart = $dateFrom->copy()->startOfDay();
+        $periodEnd = $dateTo->copy()->endOfDay();
 
-        $travauxOfMonth = Travail::where('doc_id', $doc->id)
-            ->whereDate('date_entree', '>=', $monthStart->toDateString())
-            ->whereDate('date_entree', '<=', $monthEnd->toDateString())
+        $travauxOfPeriod = Travail::where('doc_id', $doc->id)
+            ->whereDate('date_entree', '>=', $periodStart->toDateString())
+            ->whereDate('date_entree', '<=', $periodEnd->toDateString())
             ->with(['teeth' => fn ($q) => $q->orderBy('phase')->orderBy('tooth_number'), 'teeth.prestation'])
             ->orderBy('date_entree')
             ->orderBy('id')
             ->get();
 
-        $monthRows = $this->buildSituationRows($doc, $travauxOfMonth);
-        $travauxMonthTotal = (float) $monthRows['totalDhs'];
+        $periodRows = $this->buildSituationRows($doc, $travauxOfPeriod);
+        $travauxPeriodTotal = (float) $periodRows['totalDhs'];
 
         $travauxBefore = Travail::where('doc_id', $doc->id)
-            ->whereDate('date_entree', '<', $monthStart->toDateString())
+            ->whereDate('date_entree', '<', $periodStart->toDateString())
             ->get()
             ->sum(function ($t) {
                 return in_array((string) $t->statut, [Travail::STATUT_ANNULE, Travail::STATUT_A_REFAIRE], true)
@@ -217,34 +218,34 @@ class DocsController extends Controller
             });
 
         $recuBefore = (float) DocSituationEncaissement::where('doc_id', $doc->id)
-            ->whereRaw('(year < ?) OR (year = ? AND month < ?)', [$year, $year, $month])
+            ->whereDate('paid_on', '<', $periodStart->toDateString())
             ->sum('montant');
 
         $carryover = max(0, round((float) $travauxBefore - $recuBefore, 2));
 
-        $encaissementsDuMois = DocSituationEncaissement::where('doc_id', $doc->id)
-            ->where('year', $year)
-            ->where('month', $month)
+        $encaissementsDuPeriode = DocSituationEncaissement::where('doc_id', $doc->id)
+            ->whereDate('paid_on', '>=', $periodStart->toDateString())
+            ->whereDate('paid_on', '<=', $periodEnd->toDateString())
             ->orderBy('paid_on')
             ->orderBy('id')
             ->get();
 
-        $montantRecuMois = (float) $encaissementsDuMois->sum('montant');
+        $montantRecuPeriode = (float) $encaissementsDuPeriode->sum('montant');
 
-        $situationTotal = round($carryover + $travauxMonthTotal, 2);
-        $soldeFinMois = max(0, round($situationTotal - $montantRecuMois, 2));
+        $situationTotal = round($carryover + $travauxPeriodTotal, 2);
+        $soldeFinPeriode = max(0, round($situationTotal - $montantRecuPeriode, 2));
 
         return [
-            'groups' => $monthRows['groups'],
-            'travauxMonthTotal' => $travauxMonthTotal,
+            'groups' => $periodRows['groups'],
+            'travauxPeriodTotal' => $travauxPeriodTotal,
             'carryover' => $carryover,
-            'montantRecuMois' => $montantRecuMois,
+            'montantRecuPeriode' => $montantRecuPeriode,
             'situationTotal' => $situationTotal,
-            'soldeFinMois' => $soldeFinMois,
-            'monthStart' => $monthStart,
-            'monthEnd' => $monthEnd,
-            'encaissementsDuMois' => $encaissementsDuMois,
-            'situationEncaissementEditable' => $this->isSituationEncaissementEditable($year, $month),
+            'soldeFinPeriode' => $soldeFinPeriode,
+            'periodStart' => $periodStart,
+            'periodEnd' => $periodEnd,
+            'encaissementsDuPeriode' => $encaissementsDuPeriode,
+            'situationEncaissementEditable' => $this->isSituationEncaissementEditable($periodStart, $periodEnd),
         ];
     }
 
@@ -253,48 +254,52 @@ class DocsController extends Controller
     {
         $validated = $request->validate([
             'doc_id' => ['required', 'integer', 'exists:docs,id'],
-            'month' => ['required', 'integer', 'between:1,12'],
-            'year' => ['required', 'integer', 'between:2000,2100'],
+            'date_from' => ['required', 'date'],
+            'date_to' => ['required', 'date', 'after_or_equal:date_from'],
             'montant' => ['required', 'numeric', 'min:0.01', 'max:99999999.99'],
         ]);
 
-        $year = (int) $validated['year'];
-        $month = (int) $validated['month'];
+        $dateFrom = Carbon::parse($validated['date_from'])->startOfDay();
+        $dateTo = Carbon::parse($validated['date_to'])->endOfDay();
 
-        if (! $this->isSituationEncaissementEditable($year, $month)) {
+        if (! $this->isSituationEncaissementEditable($dateFrom, $dateTo)) {
             return redirect()->route('doc.situations.index', [
                 'doc_id' => $validated['doc_id'],
-                'month' => $month,
-                'year' => $year,
+                'date_from' => $dateFrom->toDateString(),
+                'date_to' => $dateTo->toDateString(),
             ])->with('error', 'Les encaissements ne peuvent être saisis que pour le mois en cours.');
         }
 
+        $paidOn = Carbon::now();
+
         DocSituationEncaissement::create([
             'doc_id' => (int) $validated['doc_id'],
-            'year' => $year,
-            'month' => $month,
+            'year' => (int) $paidOn->year,
+            'month' => (int) $paidOn->month,
             'montant' => round((float) $validated['montant'], 2),
-            'paid_on' => Carbon::now()->toDateString(),
+            'paid_on' => $paidOn->toDateString(),
         ]);
 
         return redirect()->route('doc.situations.index', [
             'doc_id' => $validated['doc_id'],
-            'month' => $month,
-            'year' => $year,
+            'date_from' => $dateFrom->toDateString(),
+            'date_to' => $dateTo->toDateString(),
         ])->with('success', 'Encaissement enregistré.');
     }
 
-    public function destroySituationEncaissement(DocSituationEncaissement $docSituationEncaissement): RedirectResponse
+    public function destroySituationEncaissement(Request $request, DocSituationEncaissement $docSituationEncaissement): RedirectResponse
     {
-        $year = (int) $docSituationEncaissement->year;
-        $month = (int) $docSituationEncaissement->month;
         $docId = (int) $docSituationEncaissement->doc_id;
+        $fallbackStart = Carbon::create((int) $docSituationEncaissement->year, (int) $docSituationEncaissement->month, 1)->startOfMonth();
+        $fallbackEnd = $fallbackStart->copy()->endOfMonth();
+        $dateFrom = Carbon::parse((string) $request->get('date_from', $fallbackStart->toDateString()))->startOfDay();
+        $dateTo = Carbon::parse((string) $request->get('date_to', $fallbackEnd->toDateString()))->endOfDay();
 
-        if (! $this->isSituationEncaissementEditable($year, $month)) {
+        if (! $this->isSituationEncaissementEditable($dateFrom, $dateTo)) {
             return redirect()->route('doc.situations.index', [
                 'doc_id' => $docId,
-                'month' => $month,
-                'year' => $year,
+                'date_from' => $dateFrom->toDateString(),
+                'date_to' => $dateTo->toDateString(),
             ])->with('error', 'Ce mois est clos : suppression impossible.');
         }
 
@@ -302,8 +307,8 @@ class DocsController extends Controller
 
         return redirect()->route('doc.situations.index', [
             'doc_id' => $docId,
-            'month' => $month,
-            'year' => $year,
+            'date_from' => $dateFrom->toDateString(),
+            'date_to' => $dateTo->toDateString(),
         ])->with('success', 'Encaissement supprimé.');
     }
 
@@ -313,53 +318,51 @@ class DocsController extends Controller
     public function situationsIndex(Request $request): View
     {
         $docs = Doc::orderBy('name')->get();
-        $monthOptions = [
-            1 => 'Janvier', 2 => 'Février', 3 => 'Mars', 4 => 'Avril', 5 => 'Mai', 6 => 'Juin',
-            7 => 'Juillet', 8 => 'Août', 9 => 'Septembre', 10 => 'Octobre', 11 => 'Novembre', 12 => 'Décembre',
-        ];
         $current = Carbon::now();
         $doc = null;
         $groups = [];
-        $travauxMonthTotal = 0.0;
+        $travauxPeriodTotal = 0.0;
         $carryover = 0.0;
-        $montantRecuMois = 0.0;
+        $montantRecuPeriode = 0.0;
         $situationTotal = 0.0;
-        $soldeFinMois = 0.0;
-        $encaissementsDuMois = collect();
+        $soldeFinPeriode = 0.0;
+        $encaissementsDuPeriode = collect();
         $situationEncaissementEditable = false;
-        $month = (int) ($request->get('month') ?: $current->month);
-        $year = (int) ($request->get('year') ?: $current->year);
+        $dateFrom = Carbon::parse((string) $request->get('date_from', $current->copy()->startOfMonth()->toDateString()))->startOfDay();
+        $dateTo = Carbon::parse((string) $request->get('date_to', $current->copy()->endOfMonth()->toDateString()))->endOfDay();
+        if ($dateTo->lt($dateFrom)) {
+            $dateTo = $dateFrom->copy()->endOfDay();
+        }
         $docId = $request->get('doc_id');
 
-        if ($docId && isset($monthOptions[$month]) && $year >= 2000 && $year <= 2100) {
+        if ($docId) {
             $doc = Doc::find($docId);
             if ($doc) {
-                $result = $this->monthlySituationSummary($doc, $year, $month);
+                $result = $this->periodSituationSummary($doc, $dateFrom, $dateTo);
                 $groups = $result['groups'];
-                $travauxMonthTotal = $result['travauxMonthTotal'];
+                $travauxPeriodTotal = $result['travauxPeriodTotal'];
                 $carryover = $result['carryover'];
-                $montantRecuMois = $result['montantRecuMois'];
+                $montantRecuPeriode = $result['montantRecuPeriode'];
                 $situationTotal = $result['situationTotal'];
-                $soldeFinMois = $result['soldeFinMois'];
-                $encaissementsDuMois = $result['encaissementsDuMois'];
+                $soldeFinPeriode = $result['soldeFinPeriode'];
+                $encaissementsDuPeriode = $result['encaissementsDuPeriode'];
                 $situationEncaissementEditable = $result['situationEncaissementEditable'];
             }
         }
 
         return view('docs.situations', [
             'docs' => $docs,
-            'monthOptions' => $monthOptions,
             'doc' => $doc,
             'groups' => $groups,
-            'travauxMonthTotal' => $travauxMonthTotal,
+            'travauxPeriodTotal' => $travauxPeriodTotal,
             'carryover' => $carryover,
-            'montantRecuMois' => $montantRecuMois,
+            'montantRecuPeriode' => $montantRecuPeriode,
             'situationTotal' => $situationTotal,
-            'soldeFinMois' => $soldeFinMois,
-            'month' => $month,
-            'year' => $year,
+            'soldeFinPeriode' => $soldeFinPeriode,
+            'dateFrom' => $dateFrom->toDateString(),
+            'dateTo' => $dateTo->toDateString(),
             'docId' => $docId,
-            'encaissementsDuMois' => $encaissementsDuMois,
+            'encaissementsDuPeriode' => $encaissementsDuPeriode,
             'situationEncaissementEditable' => $situationEncaissementEditable,
         ]);
     }
@@ -371,37 +374,44 @@ class DocsController extends Controller
     {
         $request->validate([
             'doc_id' => ['required', 'integer', 'exists:docs,id'],
-            'month' => ['required', 'integer', 'between:1,12'],
-            'year' => ['required', 'integer', 'between:2000,2100'],
+            'date_from' => ['required', 'date'],
+            'date_to' => ['required', 'date', 'after_or_equal:date_from'],
         ]);
 
         $doc = Doc::findOrFail($request->get('doc_id'));
-        $month = (int) $request->get('month');
-        $year = (int) $request->get('year');
-        $result = $this->monthlySituationSummary($doc, $year, $month);
-        $monthOptions = [
-            1 => 'Janvier', 2 => 'Février', 3 => 'Mars', 4 => 'Avril', 5 => 'Mai', 6 => 'Juin',
-            7 => 'Juillet', 8 => 'Août', 9 => 'Septembre', 10 => 'Octobre', 11 => 'Novembre', 12 => 'Décembre',
-        ];
-        $monthLabel = ($monthOptions[$month] ?? (string) $month) . ' ' . $year;
+        $dateFrom = Carbon::parse((string) $request->get('date_from'))->startOfDay();
+        $dateTo = Carbon::parse((string) $request->get('date_to'))->endOfDay();
+        $result = $this->periodSituationSummary($doc, $dateFrom, $dateTo);
+        $periodLabel = 'Du ' . $dateFrom->format('d/m/Y') . ' au ' . $dateTo->format('d/m/Y');
 
         $labName = Setting::get('lab_name', 'MD Smile');
         $logoPath = public_path('images/mdsmile-logo.png');
         $labVille = Setting::get('lab_ville', 'Casablanca');
 
+        $moisCourant = Carbon::now();
+        $moisCourantDebut = $moisCourant->copy()->startOfMonth()->toDateString();
+        $moisCourantFin = $moisCourant->copy()->endOfMonth()->toDateString();
+        $montantRecuMoisCourant = (float) DocSituationEncaissement::where('doc_id', $doc->id)
+            ->whereDate('paid_on', '>=', $moisCourantDebut)
+            ->whereDate('paid_on', '<=', $moisCourantFin)
+            ->sum('montant');
+        $moisCourantLibelle = $moisCourant->copy()->locale('fr')->translatedFormat('F Y');
+
         $pdf = Pdf::loadView('docs.situations-pdf', [
             'doc' => $doc,
             'groups' => $result['groups'],
-            'travauxMonthTotal' => $result['travauxMonthTotal'],
+            'travauxPeriodTotal' => $result['travauxPeriodTotal'],
             'carryover' => $result['carryover'],
-            'montantRecuMois' => $result['montantRecuMois'],
+            'montantRecuPeriode' => $result['montantRecuPeriode'],
             'situationTotal' => $result['situationTotal'],
-            'soldeFinMois' => $result['soldeFinMois'],
-            'monthLabel' => $monthLabel,
+            'soldeFinPeriode' => $result['soldeFinPeriode'],
+            'periodLabel' => $periodLabel,
+            'montantRecuMoisCourant' => $montantRecuMoisCourant,
+            'moisCourantLibelle' => $moisCourantLibelle,
             'labName' => $labName,
             'logoPath' => $logoPath,
             'labVille' => $labVille,
-            'encaissementsDuMois' => $result['encaissementsDuMois'],
+            'encaissementsDuPeriode' => $result['encaissementsDuPeriode'],
         ])->setPaper('a4', 'portrait');
 
         $filename = 'situation-' . \Illuminate\Support\Str::slug($doc->name) . '-' . now()->format('Y-m-d') . '.pdf';

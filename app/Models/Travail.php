@@ -40,6 +40,7 @@ class Travail extends Model
 
     public const STATUT_EN_ATTENTE = 'en_attente';
     public const STATUT_EN_COURS = 'en_cours';
+    public const STATUT_EN_ESSAIAGE = 'en_essaiage';
     public const STATUT_TERMINE = 'termine';
     public const STATUT_LIVRER = 'livrer';
     public const STATUT_ANNULE = 'annule';
@@ -50,6 +51,7 @@ class Travail extends Model
         return [
             self::STATUT_EN_ATTENTE => 'En attente',
             self::STATUT_EN_COURS => 'En cours',
+            self::STATUT_EN_ESSAIAGE => 'En essaiage',
             self::STATUT_TERMINE => 'Terminé',
             self::STATUT_LIVRER => 'Livrer',
             self::STATUT_A_REFAIRE => 'À refaire',

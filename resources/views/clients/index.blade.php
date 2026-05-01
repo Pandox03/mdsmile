@@ -13,16 +13,16 @@
     </div>
     @endif
 
-    {{-- Title + Add button (creation client réservée au manager) --}}
+    {{-- Title + Add button --}}
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div class="rounded-xl border border-[#967A4B]/40 bg-zinc-900/80 px-5 py-4">
             <h1 class="text-xl font-bold text-[#967A4B]">Clients (Dentistes)</h1>
         </div>
-        @role('manager')
+        @hasanyrole('manager|secretaire')
         <a href="{{ route('clients.create') }}" class="shrink-0 rounded-lg border border-[#967A4B] bg-[#967A4B] px-5 py-2.5 text-sm font-medium text-black transition hover:bg-[#B8986B]">
             Ajouter un client
         </a>
-        @endrole
+        @endhasanyrole
     </div>
 
     {{-- Search --}}
@@ -72,8 +72,10 @@
                         <td class="px-4 py-3 text-zinc-300">{{ $doc->travaux_count }}</td>
                         <td class="px-4 py-3" onclick="event.stopPropagation()">
                             <div class="flex items-center gap-2">
-                                @role('manager')
+                                @hasanyrole('manager|secretaire')
                                 <a href="{{ route('clients.prestations', $doc) }}" class="rounded p-1.5 font-bold text-[#967A4B] transition hover:bg-[#967A4B]/10" title="Tarifs client">$</a>
+                                @endhasanyrole
+                                @role('manager')
                                 <a href="{{ route('clients.edit', $doc) }}" class="rounded p-1.5 text-[#967A4B] transition hover:bg-[#967A4B]/10" title="Modifier">
                                     <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                                 </a>

@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->string('dentiste');           // nom du dentiste (doc)
             $table->string('patient');
+            $table->string('numero_fiche', 255)->nullable();
             $table->string('type_travail');       // e.g. Couronne Céramique, Bridge...
             $table->date('date_entree');
             $table->date('date_livraison');

@@ -43,6 +43,7 @@
         @endhasanyrole
 
         @hasanyrole('manager|secretaire')
+        @role('manager')
         <a href="{{ route('factures.index') }}" class="rounded-xl border border-[#967A4B]/20 bg-zinc-900/80 p-5 transition hover:border-[#967A4B]/40 hover:bg-zinc-900">
             <div class="flex items-start justify-between">
                 <div>
@@ -55,6 +56,7 @@
                 </div>
             </div>
         </a>
+        @endrole
 
         <a href="{{ route('factures.index') }}" class="rounded-xl border border-[#967A4B]/20 bg-zinc-900/80 p-5 transition hover:border-[#967A4B]/40 hover:bg-zinc-900">
             <div class="flex items-start justify-between">
@@ -136,7 +138,7 @@
 
     {{-- Chart + Derniers Travaux (chart only for manager+secretaire) --}}
     <div class="grid gap-6 lg:grid-cols-3">
-        @hasanyrole('manager|secretaire')
+        @role('manager')
         {{-- Évolution du Chiffre d'Affaires --}}
         <div class="lg:col-span-2 rounded-xl border border-[#967A4B]/20 bg-zinc-900/80 p-6">
             <h2 class="mb-4 text-lg font-semibold text-zinc-100">Évolution du chiffre d'affaires (DHS) — 6 derniers mois</h2>
@@ -144,11 +146,11 @@
                 <canvas id="revenueChart" class="w-full" height="256"></canvas>
             </div>
         </div>
-        @endhasanyrole
+        @endrole
 
         {{-- Derniers Travaux (manager, secretaire, assistante, cadcam) --}}
         @hasanyrole('manager|secretaire|assistante|cadcam')
-        <div class="{{ auth()->user()->hasAnyRole(['manager', 'secretaire']) ? '' : 'lg:col-span-3' }} rounded-xl border border-[#967A4B]/20 bg-zinc-900/80 p-6">
+        <div class="{{ auth()->user()->hasRole('manager') ? '' : 'lg:col-span-3' }} rounded-xl border border-[#967A4B]/20 bg-zinc-900/80 p-6">
             <div class="mb-4 flex items-center justify-between">
                 <h2 class="text-lg font-semibold text-zinc-100">Derniers travaux</h2>
                 <a href="{{ route('travaux.index') }}" class="rounded p-1.5 text-[#967A4B] hover:bg-[#967A4B]/10" title="Voir tout">

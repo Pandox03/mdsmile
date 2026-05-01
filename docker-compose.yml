@@ -1,0 +1,36 @@
+version: "3.9"
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: mdsmile-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: mdsmile
+      MYSQL_USER: mdsmile
+      MYSQL_PASSWORD: mdsmile
+    ports:
+      - "3306:3306"
+    volumes:
+      - mdsmile_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: mdsmile-phpmyadmin
+    restart: unless-stopped
+    depends_on:
+      - mysql
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+    ports:
+      - "8081:80"
+
+volumes:
+  mdsmile_mysql_data:

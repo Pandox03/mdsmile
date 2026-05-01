@@ -15,11 +15,45 @@ Système de gestion pour centre de création dentaire — Dashboard admin, suivi
 composer install
 cp .env.example .env
 php artisan key:generate
-# Configurer DB dans .env (MySQL)
+# Configurer DB dans .env
 php artisan migrate
 npm install && npm run build
 php artisan serve
 ```
+
+## Base de données avec Docker (sans XAMPP)
+
+Le projet inclut maintenant `docker-compose.yml` pour lancer MySQL + phpMyAdmin.
+
+### 1) Lancer la base Docker
+
+```bash
+docker compose up -d
+```
+
+### 2) Mettre la config DB dans `.env`
+
+```env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=mdsmile
+DB_USERNAME=mdsmile
+DB_PASSWORD=mdsmile
+```
+
+### 3) Migrer
+
+```bash
+php artisan migrate
+```
+
+### 4) phpMyAdmin (optionnel)
+
+- URL: `http://localhost:8081`
+- Serveur: `mysql` (ou `127.0.0.1` selon config)
+- User: `mdsmile`
+- Password: `mdsmile`
 
 ## Démarrage rapide
 

@@ -58,13 +58,13 @@ Route::middleware(['auth'])->group(function () {
     Route::middleware(['role:manager|secretaire'])->group(function () {
         Route::get('/clients', [DocsController::class, 'index'])->name('clients.index');
         // Specific client routes first so "create" and "{id}/edit" are not matched by /clients/{doc}
-        Route::get('/clients/create', [DocsController::class, 'create'])->name('clients.create')->middleware('role:manager');
-        Route::post('/clients', [DocsController::class, 'store'])->name('clients.store')->middleware('role:manager');
+        Route::get('/clients/create', [DocsController::class, 'create'])->name('clients.create')->middleware('role:manager|secretaire');
+        Route::post('/clients', [DocsController::class, 'store'])->name('clients.store')->middleware('role:manager|secretaire');
         Route::get('/clients/{doc}/edit', [DocsController::class, 'edit'])->name('clients.edit')->middleware('role:manager');
         Route::put('/clients/{doc}', [DocsController::class, 'update'])->name('clients.update')->middleware('role:manager');
         Route::delete('/clients/{doc}', [DocsController::class, 'destroy'])->name('clients.destroy')->middleware('role:manager');
-        Route::get('/clients/{doc}/prestations', [DocsController::class, 'clientPrestations'])->name('clients.prestations')->middleware('role:manager');
-        Route::put('/clients/{doc}/prestations', [DocsController::class, 'updateClientPrestations'])->name('clients.prestations.update')->middleware('role:manager');
+        Route::get('/clients/{doc}/prestations', [DocsController::class, 'clientPrestations'])->name('clients.prestations')->middleware('role:manager|secretaire');
+        Route::put('/clients/{doc}/prestations', [DocsController::class, 'updateClientPrestations'])->name('clients.prestations.update')->middleware('role:manager|secretaire');
         Route::get('/clients/{doc}', [DocsController::class, 'show'])->name('clients.show');
         Route::get('/doc-situations', [DocsController::class, 'situationsIndex'])->name('doc.situations.index');
         Route::get('/doc-situations/pdf', [DocsController::class, 'situationsPdf'])->name('doc.situations.pdf');
