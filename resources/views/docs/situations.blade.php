@@ -15,7 +15,7 @@
 
     <div class="rounded-xl border border-[#967A4B]/40 bg-zinc-900/80 px-5 py-4">
         <h1 class="text-xl font-bold text-[#967A4B]">Situation mensuelle par dentiste (doc)</h1>
-        <p class="mt-1 text-sm text-zinc-400">Filtrer par plage de dates. Le report intègre les travaux passés et les encaissements enregistrés sur la période. Les encaissements ne peuvent être ajoutés ou retirés que pour le <strong class="text-zinc-300">mois calendaire en cours</strong>.</p>
+        <p class="mt-1 text-sm text-zinc-400">Filtrer par plage de dates. Le report intègre les travaux passés et les encaissements enregistrés sur la période. Vous pouvez <strong class="text-zinc-300">ajouter ou supprimer un encaissement à tout moment</strong> en choisissant la <strong class="text-zinc-300">date du paiement</strong> (rétrodatage autorisé, pas de date future).</p>
         <p class="mt-2 text-sm text-zinc-500">Les travaux <span class="text-zinc-300">Annulé</span> et <span class="text-zinc-300">À refaire</span> sont comptés à <strong class="text-zinc-300">0 DHS</strong>.</p>
     </div>
 
@@ -62,30 +62,39 @@
             <div class="rounded-lg border border-zinc-700 bg-zinc-900/80 p-3">
                 <p class="text-xs text-zinc-500">Total encaissé (situation, période)</p>
                 <p class="mt-1 text-lg font-semibold text-zinc-200">{{ number_format($montantRecuPeriode, 0, ',', ' ') }} DHS</p>
-                @if($situationEncaissementEditable ?? false)
-                <form method="POST" action="{{ route('doc.situations.encaissement') }}" class="mt-3 flex flex-wrap items-end gap-2 border-t border-zinc-800 pt-3">
-                    @csrf
-                    <input type="hidden" name="doc_id" value="{{ $doc->id }}">
-                    <input type="hidden" name="date_from" value="{{ $dateFrom }}">
-                    <input type="hidden" name="date_to" value="{{ $dateTo }}">
-                    <div class="flex min-w-0 flex-1 flex-col gap-1 sm:max-w-[200px]">
-                        <label class="text-xs font-medium text-zinc-500">Montant à enregistrer (DHS)</label>
-                        <input type="number" name="montant" step="0.01" min="0.01" value="{{ old('montant') }}" class="auth-input w-full rounded-lg border {{ $errors->has('montant') ? 'border-red-500' : 'border-zinc-600' }} bg-zinc-800/90 px-3 py-2 text-sm text-zinc-100 focus:border-[#967A4B] focus:outline-none focus:ring-1 focus:ring-[#967A4B]/30" placeholder="0.00">
-                    </div>
-                    <button type="submit" class="rounded-lg border border-[#967A4B]/60 bg-[#967A4B]/20 px-4 py-2 text-sm font-medium text-[#967A4B] hover:bg-[#967A4B]/30">Enregistrer</button>
-                </form>
-                <p class="mt-2 text-xs text-zinc-500">La date enregistrée est celle du jour où vous cliquez sur Enregistrer.</p>
-                @error('montant')
-                <p class="mt-1 text-xs text-red-400">{{ $message }}</p>
-                @enderror
-                @else
-                <p class="mt-2 text-xs text-zinc-500">Période close — saisie et suppression des encaissements désactivées.</p>
-                @endif
             </div>
             <div class="rounded-lg border border-[#967A4B]/40 bg-[#967A4B]/10 p-3">
                 <p class="text-xs text-zinc-500">Reste à payer (fin de période)</p>
                 <p class="mt-1 text-lg font-bold text-[#967A4B]">{{ number_format($soldeFinPeriode, 0, ',', ' ') }} DHS</p>
             </div>
+        </div>
+
+        <div class="border-b border-zinc-800 bg-zinc-900/70 px-4 py-4">
+            <h3 class="text-sm font-semibold text-[#967A4B]">Nouvel encaissement</h3>
+            <p class="mt-1 max-w-3xl text-xs text-zinc-500">Indiquez la date du paiement et le montant. La ligne apparaît dans le tableau ci-dessous si la date est comprise dans la période affichée (Du / Au).</p>
+            <form method="POST" action="{{ route('doc.situations.encaissement') }}" class="mt-4 grid max-w-3xl grid-cols-1 gap-4 sm:grid-cols-12 sm:items-end">
+                @csrf
+                <input type="hidden" name="doc_id" value="{{ $doc->id }}">
+                <input type="hidden" name="date_from" value="{{ $dateFrom }}">
+                <input type="hidden" name="date_to" value="{{ $dateTo }}">
+                <div class="flex flex-col gap-1.5 sm:col-span-4">
+                    <label for="situation-paid-on" class="text-xs font-medium text-zinc-400">Date du paiement</label>
+                    <input id="situation-paid-on" type="date" name="paid_on" value="{{ old('paid_on', now()->toDateString()) }}" max="{{ now()->toDateString() }}" class="auth-input w-full rounded-lg border {{ $errors->has('paid_on') ? 'border-red-500' : 'border-zinc-600' }} bg-zinc-800/90 px-3 py-2.5 text-sm text-zinc-100 focus:border-[#967A4B] focus:outline-none focus:ring-1 focus:ring-[#967A4B]/30">
+                </div>
+                <div class="flex flex-col gap-1.5 sm:col-span-4">
+                    <label for="situation-montant" class="text-xs font-medium text-zinc-400">Montant (DHS)</label>
+                    <input id="situation-montant" type="number" name="montant" step="0.01" min="0.01" value="{{ old('montant') }}" placeholder="0.00" class="auth-input w-full rounded-lg border {{ $errors->has('montant') ? 'border-red-500' : 'border-zinc-600' }} bg-zinc-800/90 px-3 py-2.5 text-sm text-zinc-100 focus:border-[#967A4B] focus:outline-none focus:ring-1 focus:ring-[#967A4B]/30">
+                </div>
+                <div class="flex sm:col-span-4 sm:justify-end">
+                    <button type="submit" class="w-full rounded-lg border border-[#967A4B] bg-[#967A4B] px-5 py-2.5 text-sm font-medium text-black transition hover:bg-[#B8986B] sm:w-auto sm:self-end">Enregistrer</button>
+                </div>
+            </form>
+            @error('montant')
+            <p class="mt-2 text-xs text-red-400">{{ $message }}</p>
+            @enderror
+            @error('paid_on')
+            <p class="mt-2 text-xs text-red-400">{{ $message }}</p>
+            @enderror
         </div>
         <div class="overflow-x-auto">
             <table class="w-full min-w-[700px] text-left text-sm">
@@ -123,17 +132,15 @@
 
         <div class="border-t border-zinc-800 bg-zinc-900/60 px-4 py-4">
             <h3 class="text-sm font-semibold text-[#967A4B]">Encaissements enregistrés (situation)</h3>
-            <p class="mt-1 text-xs text-zinc-500">Détail par date d’enregistrement (jour du clic sur Enregistrer). Indépendant de la comptabilité factures.</p>
+            <p class="mt-1 text-xs text-zinc-500">Détail par date du paiement (saisie manuelle). Indépendant de la comptabilité factures.</p>
 
             <div class="mt-3 overflow-x-auto">
                 <table class="w-full min-w-[420px] text-left text-sm">
                     <thead>
                         <tr class="border-b border-zinc-700 bg-zinc-800/50">
-                            <th class="px-4 py-2.5 font-semibold text-zinc-400">Date d’enregistrement</th>
+                            <th class="px-4 py-2.5 font-semibold text-zinc-400">Date du paiement</th>
                             <th class="px-4 py-2.5 font-semibold text-zinc-400 text-right">Montant (DHS)</th>
-                            @if($situationEncaissementEditable ?? false)
                             <th class="px-4 py-2.5 font-semibold text-zinc-400 w-28"></th>
-                            @endif
                         </tr>
                     </thead>
                     <tbody>
@@ -141,7 +148,6 @@
                         <tr class="border-b border-zinc-800 hover:bg-zinc-800/40">
                             <td class="px-4 py-2.5 text-zinc-200">{{ $enc->paid_on?->format('d/m/Y') }}</td>
                             <td class="px-4 py-2.5 text-right font-medium text-zinc-200">{{ number_format((float) $enc->montant, 0, ',', ' ') }}</td>
-                            @if($situationEncaissementEditable ?? false)
                             <td class="px-4 py-2.5 text-right">
                                 <form method="POST" action="{{ route('doc.situations.encaissement.destroy', $enc) }}" class="inline" onsubmit="return confirm('Supprimer cet encaissement ?');">
                                     @csrf
@@ -151,11 +157,10 @@
                                     <button type="submit" class="text-xs text-red-400 hover:underline">Supprimer</button>
                                 </form>
                             </td>
-                            @endif
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="{{ ($situationEncaissementEditable ?? false) ? 3 : 2 }}" class="px-4 py-6 text-center text-zinc-500">Aucun encaissement enregistré pour cette période.</td>
+                            <td colspan="3" class="px-4 py-6 text-center text-zinc-500">Aucun encaissement enregistré pour cette période.</td>
                         </tr>
                         @endforelse
                     </tbody>
@@ -164,9 +169,7 @@
                         <tr class="border-t border-zinc-700 bg-zinc-800/30">
                             <td class="px-4 py-2.5 text-right text-sm font-medium text-zinc-400">Total</td>
                             <td class="px-4 py-2.5 text-right text-sm font-semibold text-zinc-200">{{ number_format((float) $encaissementsDuPeriode->sum('montant'), 0, ',', ' ') }}</td>
-                            @if($situationEncaissementEditable ?? false)
                             <td></td>
-                            @endif
                         </tr>
                     </tfoot>
                     @endif

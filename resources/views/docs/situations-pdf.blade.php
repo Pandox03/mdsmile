@@ -65,7 +65,7 @@
 
     <p class="meta-line"><strong>{{ $labVille ?? 'Casablanca' }}</strong> — Situation : {{ $periodLabel }}</p>
 
-    <p class="note">Les montants travaux excluent les statuts Annulé et À refaire (0&nbsp;DHS). Les encaissements situation sont indépendants des factures ; la date indiquée est celle du jour d’enregistrement.</p>
+    <p class="note">Les montants travaux excluent les statuts Annulé et À refaire (0&nbsp;DHS). Les encaissements situation sont indépendants des factures ; la date indiquée est la date du paiement (saisie manuelle).</p>
 
     <table class="recap">
         <tr>
@@ -98,7 +98,7 @@
             <td colspan="2" class="recap-divider">Encaissements du mois calendaire en cours</td>
         </tr>
         <tr>
-            <td class="label">Total encaissé en {{ ucfirst($moisCourantLibelle ?? '') }} <span class="recap-muted">(tous enregistrements du mois)</span></td>
+            <td class="label">Total encaissé en {{ ucfirst($moisCourantLibelle ?? '') }} <span class="recap-muted">(somme des paiements dont la date tombe dans ce mois)</span></td>
             <td class="amount">{{ number_format((float) ($montantRecuMoisCourant ?? 0), 0, ',', ' ') }} DHS</td>
         </tr>
     </table>

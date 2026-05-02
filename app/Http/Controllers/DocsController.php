@@ -185,13 +185,6 @@ class DocsController extends Controller
         return ['groups' => $groups, 'totalDhs' => $totalDhs];
     }
 
-    /** Saisie des encaissements réservée au mois calendaire en cours. */
-    private function isSituationEncaissementEditable(Carbon $dateFrom, Carbon $dateTo): bool
-    {
-        $now = Carbon::now();
-        return $dateFrom->isSameDay($now->copy()->startOfMonth()) && $dateTo->isSameDay($now->copy()->endOfMonth());
-    }
-
     private function periodSituationSummary(Doc $doc, Carbon $dateFrom, Carbon $dateTo): array
     {
         $periodStart = $dateFrom->copy()->startOfDay();
@@ -245,32 +238,24 @@ class DocsController extends Controller
             'periodStart' => $periodStart,
             'periodEnd' => $periodEnd,
             'encaissementsDuPeriode' => $encaissementsDuPeriode,
-            'situationEncaissementEditable' => $this->isSituationEncaissementEditable($periodStart, $periodEnd),
         ];
     }
 
-    /** Ajouter un encaissement situation ; la date enregistrée est celle du jour (serveur) au moment de l’enregistrement. */
+    /** Ajouter un encaissement situation ; date du paiement saisie manuellement (rétrodatage autorisé). */
     public function storeSituationEncaissement(Request $request): RedirectResponse
     {
         $validated = $request->validate([
             'doc_id' => ['required', 'integer', 'exists:docs,id'],
             'date_from' => ['required', 'date'],
             'date_to' => ['required', 'date', 'after_or_equal:date_from'],
+            'paid_on' => ['required', 'date', 'before_or_equal:today'],
             'montant' => ['required', 'numeric', 'min:0.01', 'max:99999999.99'],
         ]);
 
         $dateFrom = Carbon::parse($validated['date_from'])->startOfDay();
         $dateTo = Carbon::parse($validated['date_to'])->endOfDay();
 
-        if (! $this->isSituationEncaissementEditable($dateFrom, $dateTo)) {
-            return redirect()->route('doc.situations.index', [
-                'doc_id' => $validated['doc_id'],
-                'date_from' => $dateFrom->toDateString(),
-                'date_to' => $dateTo->toDateString(),
-            ])->with('error', 'Les encaissements ne peuvent être saisis que pour le mois en cours.');
-        }
-
-        $paidOn = Carbon::now();
+        $paidOn = Carbon::parse($validated['paid_on'])->startOfDay();
 
         DocSituationEncaissement::create([
             'doc_id' => (int) $validated['doc_id'],
@@ -294,14 +279,6 @@ class DocsController extends Controller
         $fallbackEnd = $fallbackStart->copy()->endOfMonth();
         $dateFrom = Carbon::parse((string) $request->get('date_from', $fallbackStart->toDateString()))->startOfDay();
         $dateTo = Carbon::parse((string) $request->get('date_to', $fallbackEnd->toDateString()))->endOfDay();
-
-        if (! $this->isSituationEncaissementEditable($dateFrom, $dateTo)) {
-            return redirect()->route('doc.situations.index', [
-                'doc_id' => $docId,
-                'date_from' => $dateFrom->toDateString(),
-                'date_to' => $dateTo->toDateString(),
-            ])->with('error', 'Ce mois est clos : suppression impossible.');
-        }
 
         $docSituationEncaissement->delete();
 
@@ -327,7 +304,6 @@ class DocsController extends Controller
         $situationTotal = 0.0;
         $soldeFinPeriode = 0.0;
         $encaissementsDuPeriode = collect();
-        $situationEncaissementEditable = false;
         $dateFrom = Carbon::parse((string) $request->get('date_from', $current->copy()->startOfMonth()->toDateString()))->startOfDay();
         $dateTo = Carbon::parse((string) $request->get('date_to', $current->copy()->endOfMonth()->toDateString()))->endOfDay();
         if ($dateTo->lt($dateFrom)) {
@@ -346,7 +322,6 @@ class DocsController extends Controller
                 $situationTotal = $result['situationTotal'];
                 $soldeFinPeriode = $result['soldeFinPeriode'];
                 $encaissementsDuPeriode = $result['encaissementsDuPeriode'];
-                $situationEncaissementEditable = $result['situationEncaissementEditable'];
             }
         }
 
@@ -363,7 +338,6 @@ class DocsController extends Controller
             'dateTo' => $dateTo->toDateString(),
             'docId' => $docId,
             'encaissementsDuPeriode' => $encaissementsDuPeriode,
-            'situationEncaissementEditable' => $situationEncaissementEditable,
         ]);
     }
 
