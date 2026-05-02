@@ -45,7 +45,7 @@
     @if($doc)
     <div class="rounded-xl border border-[#967A4B]/20 bg-zinc-900/80 overflow-hidden">
         <div class="border-b border-[#967A4B]/30 bg-zinc-800/80 px-4 py-3 flex flex-wrap items-center justify-between gap-3">
-            <h2 class="text-lg font-semibold text-[#967A4B]">Dr {{ $doc->name }}</h2>
+            <h2 class="text-lg font-semibold text-[#967A4B]"> {{ $doc->name }}</h2>
             <a href="{{ route('doc.situations.pdf', ['doc_id' => $doc->id, 'date_from' => $dateFrom, 'date_to' => $dateTo]) }}" target="_blank" class="rounded-lg border border-[#967A4B] bg-[#967A4B] px-4 py-2.5 text-sm font-medium text-black hover:bg-[#B8986B]">
                 Télécharger PDF
             </a>

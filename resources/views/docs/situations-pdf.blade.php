@@ -13,10 +13,11 @@
         .logo img { max-height: 64px; max-width: 150px; display: block; }
         .title-block { text-align: center; background: #d4a574; color: #000; padding: 11px 14px; margin-bottom: 10px; font-size: 15px; font-weight: bold; letter-spacing: 0.02em; }
         .meta-line { margin-bottom: 8px; font-size: 11px; color: #333; }
+        .doc-block { background: #d4a574; color: #000; padding: 10px 16px; margin-bottom: 12px; font-size: 14px; font-weight: bold; }
         .note { margin-bottom: 14px; font-size: 9.5px; color: #555; line-height: 1.35; border-left: 3px solid #d4a574; padding: 8px 10px; background: #faf8f5; }
 
-        /* Récapitulatif */
-        .recap { width: 100%; border-collapse: collapse; margin-bottom: 20px; page-break-inside: avoid; }
+        /* Récapitulatif (en bas du document, après le détail travaux) */
+        .recap { width: 100%; border-collapse: collapse; margin-top: 20px; margin-bottom: 0; page-break-inside: avoid; }
         .recap td { padding: 9px 12px; border: 1px solid #5c5c5c; font-size: 11px; vertical-align: middle; }
         .recap td.label { width: 62%; }
         .recap td.amount { text-align: right; font-weight: 600; white-space: nowrap; width: 38%; }
@@ -65,43 +66,7 @@
 
     <p class="meta-line"><strong>{{ $labVille ?? 'Casablanca' }}</strong> — Situation : {{ $periodLabel }}</p>
 
-    <p class="note">Les montants travaux excluent les statuts Annulé et À refaire (0&nbsp;DHS). Les encaissements situation sont indépendants des factures ; la date indiquée est la date du paiement (saisie manuelle).</p>
-
-    <table class="recap">
-        <tr>
-            <td colspan="2" class="recap-title">Récapitulatif — Dr {{ $doc->name }}</td>
-        </tr>
-        <tr>
-            <td colspan="2" class="recap-sub">Période analysée : {{ $periodLabel }}</td>
-        </tr>
-        <tr>
-            <td class="label">Reste avant période (report)</td>
-            <td class="amount">{{ number_format((float) $carryover, 0, ',', ' ') }} DHS</td>
-        </tr>
-        <tr>
-            <td class="label">Travaux de la période</td>
-            <td class="amount">{{ number_format((float) $travauxPeriodTotal, 0, ',', ' ') }} DHS</td>
-        </tr>
-        <tr>
-            <td class="label recap-muted">Total dû (report + travaux)</td>
-            <td class="amount">{{ number_format((float) $situationTotal, 0, ',', ' ') }} DHS</td>
-        </tr>
-        <tr>
-            <td class="label">Encaissements enregistrés sur cette période</td>
-            <td class="amount">{{ number_format((float) $montantRecuPeriode, 0, ',', ' ') }} DHS</td>
-        </tr>
-        <tr class="recap-final">
-            <td class="label">Reste à payer (fin de période)</td>
-            <td class="amount">{{ number_format((float) $soldeFinPeriode, 0, ',', ' ') }} DHS</td>
-        </tr>
-        <tr>
-            <td colspan="2" class="recap-divider">Encaissements du mois calendaire en cours</td>
-        </tr>
-        <tr>
-            <td class="label">Total encaissé en {{ ucfirst($moisCourantLibelle ?? '') }} <span class="recap-muted">(somme des paiements dont la date tombe dans ce mois)</span></td>
-            <td class="amount">{{ number_format((float) ($montantRecuMoisCourant ?? 0), 0, ',', ' ') }} DHS</td>
-        </tr>
-    </table>
+    <div class="doc-block">{{ $doc->name }}</div>
 
     <p class="section-title">Détail des travaux (entrées sur la période)</p>
 
@@ -133,6 +98,42 @@
             </tr>
         </tbody>
         @endif
+    </table>
+
+    <table class="recap">
+        <tr>
+            <td colspan="2" class="recap-title">Récapitulatif</td>
+        </tr>
+        <tr>
+            <td colspan="2" class="recap-sub">Période analysée : {{ $periodLabel }}</td>
+        </tr>
+        <tr>
+            <td class="label">Reste avant période (report)</td>
+            <td class="amount">{{ number_format((float) $carryover, 0, ',', ' ') }} DHS</td>
+        </tr>
+        <tr>
+            <td class="label">Travaux de la période</td>
+            <td class="amount">{{ number_format((float) $travauxPeriodTotal, 0, ',', ' ') }} DHS</td>
+        </tr>
+        <tr>
+            <td class="label recap-muted">Total dû (report + travaux)</td>
+            <td class="amount">{{ number_format((float) $situationTotal, 0, ',', ' ') }} DHS</td>
+        </tr>
+        <tr>
+            <td class="label">Encaissements enregistrés sur cette période</td>
+            <td class="amount">{{ number_format((float) $montantRecuPeriode, 0, ',', ' ') }} DHS</td>
+        </tr>
+        <tr class="recap-final">
+            <td class="label">Reste à payer (fin de période)</td>
+            <td class="amount">{{ number_format((float) $soldeFinPeriode, 0, ',', ' ') }} DHS</td>
+        </tr>
+        <tr>
+            <td colspan="2" class="recap-divider">Encaissements du mois calendaire en cours</td>
+        </tr>
+        <tr>
+            <td class="label">Total encaissé en {{ ucfirst($moisCourantLibelle ?? '') }} <span class="recap-muted">(somme des paiements dont la date tombe dans ce mois)</span></td>
+            <td class="amount">{{ number_format((float) ($montantRecuMoisCourant ?? 0), 0, ',', ' ') }} DHS</td>
+        </tr>
     </table>
 
 </body>
