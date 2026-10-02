@@ -141,8 +141,8 @@ class DocsController extends Controller
     }
 
     /**
-     * Build situation groups: one group per travail, with detailed lines per phase/prestation.
-     * Each group has patient, numero_fiche, total amount, and lines (nature per phase) for rowspan display.
+     * Build situation groups: one group per travail, with one line per prestation/phase case.
+     * Previously grouping by phase alone collapsed multiple prestations into a single nature line.
      */
     private function buildSituationRows(Doc $doc, $travaux): array
     {
@@ -156,31 +156,109 @@ class DocsController extends Controller
         $totalDhs = 0.0;
         foreach ($travaux as $t) {
             $statut = (string) $t->statut;
-            $amount = in_array($statut, [Travail::STATUT_ANNULE, Travail::STATUT_A_REFAIRE], true)
-                ? 0.0
-                : (float) $t->prix_actuel;
+            $zeroed = in_array($statut, [Travail::STATUT_ANNULE, Travail::STATUT_A_REFAIRE], true);
+            $amount = $zeroed ? 0.0 : (float) $t->prix_actuel;
 
-            $phases = $t->teeth->groupBy('phase')->sortKeys();
             $lines = [];
-            if ($phases->isEmpty()) {
-                $lines[] = ['nature' => $t->type_travail_display];
+            if ($t->teeth->isEmpty()) {
+                $lines[] = [
+                    'nature' => $t->type_travail_display,
+                    'amount' => $amount,
+                ];
             } else {
-                foreach ($phases->values() as $teethInPhase) {
-                    $first = $teethInPhase->first();
-                    $prestationName = $first->prestation?->name ?? $t->type_travail_display;
-                    $toothNumbers = $teethInPhase->pluck('tooth_number')->sort()->values()
+                // One situation line per (phase, prestation) so every case appears — not only the first/last.
+                $caseGroups = $t->teeth
+                    ->groupBy(fn ($tooth) => ((int) ($tooth->phase ?? 1)) . ':' . ((int) ($tooth->prestation_id ?? 0)))
+                    ->sortKeys();
+
+                $computedLines = [];
+                foreach ($caseGroups as $teethInCase) {
+                    $first = $teethInCase->first();
+                    $prestation = $first->prestation;
+                    $prestationName = $prestation?->name ?? $t->type_travail_display;
+                    $phase = (int) ($first->phase ?? 1);
+                    $toothNumbers = $teethInCase->pluck('tooth_number')->sort()->values()
                         ->map(fn ($n) => $OURS_TO_FDI[$n] ?? $n)->sort()->values();
                     $toothStr = $toothNumbers->implode(', ');
-                    $lines[] = ['nature' => $prestationName . ($toothStr !== '' ? ' — Dents ' . $toothStr : '')];
+                    $nature = $prestationName . ($toothStr !== '' ? ' — Dents ' . $toothStr : '');
+                    if ($phase > 1) {
+                        $nature = 'Phase ' . $phase . ' — ' . $nature;
+                    }
+
+                    $lineAmount = 0.0;
+                    foreach ($teethInCase as $tooth) {
+                        $p = $tooth->prestation;
+                        if ($p) {
+                            $lineAmount += (float) ($doc->getPriceForPrestation($p) ?? 0);
+                        }
+                    }
+                    $computedLines[] = [
+                        'nature' => $nature,
+                        'amount' => round($lineAmount, 2),
+                    ];
+                }
+
+                $computedSum = round(array_sum(array_column($computedLines, 'amount')), 2);
+                if ($zeroed) {
+                    foreach ($computedLines as $line) {
+                        $lines[] = ['nature' => $line['nature'], 'amount' => 0.0];
+                    }
+                } elseif ($computedSum <= 0 || abs($computedSum - $amount) < 0.005) {
+                    // Use grille prices, or exact match with travail total.
+                    if ($computedSum <= 0 && $amount > 0 && count($computedLines) === 1) {
+                        $computedLines[0]['amount'] = $amount;
+                    } elseif ($computedSum <= 0 && $amount > 0 && count($computedLines) > 1) {
+                        // No unit prices: put full total on first line, 0 on others (natures still listed).
+                        foreach ($computedLines as $i => $line) {
+                            $lines[] = [
+                                'nature' => $line['nature'],
+                                'amount' => $i === 0 ? $amount : 0.0,
+                            ];
+                        }
+                        $computedLines = [];
+                    }
+                    foreach ($computedLines as $line) {
+                        $lines[] = $line;
+                    }
+                } else {
+                    // Manual prix override: scale line amounts so they sum to prix_actuel.
+                    $scaled = [];
+                    $allocated = 0.0;
+                    $lastIdx = count($computedLines) - 1;
+                    foreach ($computedLines as $i => $line) {
+                        if ($i === $lastIdx) {
+                            $lineAmt = round($amount - $allocated, 2);
+                        } else {
+                            $lineAmt = $computedSum > 0
+                                ? round($amount * ($line['amount'] / $computedSum), 2)
+                                : 0.0;
+                            $allocated += $lineAmt;
+                        }
+                        $scaled[] = [
+                            'nature' => $line['nature'],
+                            'amount' => $lineAmt,
+                        ];
+                    }
+                    $lines = $scaled;
                 }
             }
+
+            if ($lines === []) {
+                $lines[] = [
+                    'nature' => $t->type_travail_display,
+                    'amount' => $amount,
+                ];
+            }
+
+            $groupAmount = round(array_sum(array_column($lines, 'amount')), 2);
             $groups[] = [
                 'patient' => $t->patient,
                 'numero_fiche' => $t->numero_fiche ?? '',
-                'amount' => $amount,
+                'date_fait' => $t->date_fait?->format('d/m/Y') ?? '',
+                'amount' => $groupAmount,
                 'lines' => $lines,
             ];
-            $totalDhs += $amount;
+            $totalDhs += $groupAmount;
         }
         return ['groups' => $groups, 'totalDhs' => $totalDhs];
     }
@@ -190,11 +268,15 @@ class DocsController extends Controller
         $periodStart = $dateFrom->copy()->startOfDay();
         $periodEnd = $dateTo->copy()->endOfDay();
 
+        $doneStatuts = Travail::statutsFaits();
+
         $travauxOfPeriod = Travail::where('doc_id', $doc->id)
-            ->whereDate('date_entree', '>=', $periodStart->toDateString())
-            ->whereDate('date_entree', '<=', $periodEnd->toDateString())
+            ->whereIn('statut', $doneStatuts)
+            ->whereNotNull('date_fait')
+            ->whereDate('date_fait', '>=', $periodStart->toDateString())
+            ->whereDate('date_fait', '<=', $periodEnd->toDateString())
             ->with(['teeth' => fn ($q) => $q->orderBy('phase')->orderBy('tooth_number'), 'teeth.prestation'])
-            ->orderBy('date_entree')
+            ->orderBy('date_fait')
             ->orderBy('id')
             ->get();
 
@@ -202,13 +284,11 @@ class DocsController extends Controller
         $travauxPeriodTotal = (float) $periodRows['totalDhs'];
 
         $travauxBefore = Travail::where('doc_id', $doc->id)
-            ->whereDate('date_entree', '<', $periodStart->toDateString())
+            ->whereIn('statut', $doneStatuts)
+            ->whereNotNull('date_fait')
+            ->whereDate('date_fait', '<', $periodStart->toDateString())
             ->get()
-            ->sum(function ($t) {
-                return in_array((string) $t->statut, [Travail::STATUT_ANNULE, Travail::STATUT_A_REFAIRE], true)
-                    ? 0
-                    : (float) $t->prix_actuel;
-            });
+            ->sum(fn ($t) => (float) $t->prix_actuel);
 
         $recuBefore = (float) DocSituationEncaissement::where('doc_id', $doc->id)
             ->whereDate('paid_on', '<', $periodStart->toDateString())

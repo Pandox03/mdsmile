@@ -1,10 +1,12 @@
 <?php
 
+use App\Http\Controllers\BonsLivraisonController;
 use App\Http\Controllers\CalendrierController;
 use App\Http\Controllers\CaisseController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocsController;
+use App\Http\Controllers\DevisInvisalignController;
 use App\Http\Controllers\FacturesController;
 use App\Http\Controllers\LogsController;
 use App\Http\Controllers\ParametresController;
@@ -33,6 +35,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/travaux/{travail}/add-phase', [TravauxController::class, 'addPhaseForm'])->name('travaux.add-phase');
         Route::post('/travaux/{travail}/add-phase', [TravauxController::class, 'storePhase'])->name('travaux.add-phase.store');
         Route::patch('/travaux/{travail}/statut', [TravauxController::class, 'updateStatut'])->name('travaux.updateStatut');
+        Route::patch('/travaux/{travail}/paiement', [TravauxController::class, 'updatePaiement'])->name('travaux.updatePaiement');
         Route::delete('/travaux/{travail}', [TravauxController::class, 'destroy'])->name('travaux.destroy');
     });
 
@@ -79,6 +82,21 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/factures/{facture}', [FacturesController::class, 'update'])->name('factures.update');
         Route::delete('/factures/{facture}', [FacturesController::class, 'destroy'])->name('factures.destroy');
         Route::get('/factures/{facture}', [FacturesController::class, 'show'])->name('factures.show');
+        Route::get('/devis-invisalign', [DevisInvisalignController::class, 'index'])->name('devis-invisalign.index');
+        Route::get('/devis-invisalign/create', [DevisInvisalignController::class, 'create'])->name('devis-invisalign.create');
+        Route::post('/devis-invisalign', [DevisInvisalignController::class, 'store'])->name('devis-invisalign.store');
+        Route::get('/devis-invisalign/{devisInvisalign}/edit', [DevisInvisalignController::class, 'edit'])->name('devis-invisalign.edit');
+        Route::put('/devis-invisalign/{devisInvisalign}', [DevisInvisalignController::class, 'update'])->name('devis-invisalign.update');
+        Route::delete('/devis-invisalign/{devisInvisalign}', [DevisInvisalignController::class, 'destroy'])->name('devis-invisalign.destroy');
+        Route::get('/devis-invisalign/{devisInvisalign}/pdf', [DevisInvisalignController::class, 'pdf'])->name('devis-invisalign.pdf');
+        Route::get('/bons-livraison', [BonsLivraisonController::class, 'index'])->name('bons-livraison.index');
+        Route::get('/bons-livraison/create', [BonsLivraisonController::class, 'create'])->name('bons-livraison.create');
+        Route::get('/bons-livraison/prefill/{travail}', [BonsLivraisonController::class, 'prefillTravail'])->name('bons-livraison.prefill');
+        Route::post('/bons-livraison', [BonsLivraisonController::class, 'store'])->name('bons-livraison.store');
+        Route::get('/bons-livraison/{bonLivraison}/edit', [BonsLivraisonController::class, 'edit'])->name('bons-livraison.edit');
+        Route::put('/bons-livraison/{bonLivraison}', [BonsLivraisonController::class, 'update'])->name('bons-livraison.update');
+        Route::delete('/bons-livraison/{bonLivraison}', [BonsLivraisonController::class, 'destroy'])->name('bons-livraison.destroy');
+        Route::get('/bons-livraison/{bonLivraison}/pdf', [BonsLivraisonController::class, 'pdf'])->name('bons-livraison.pdf');
     });
 
     // Manager + Secrétaire + Technicien (cadcam): stock index + materials edit/update only (no fournisseurs)

@@ -12,6 +12,10 @@ class Travail extends Model
 {
     protected $table = 'travaux';
 
+    public const PAIEMENT_NON_PAYE = 'non_paye';
+    public const PAIEMENT_PARTIEL = 'partiel';
+    public const PAIEMENT_PAYE = 'paye';
+
     protected $fillable = [
         'doc_id',
         'prestation_id',
@@ -27,12 +31,16 @@ class Travail extends Model
         'montant_comptabilise',
         'prix_comptabilise',
         'statut',
+        'date_fait',
+        'paiement_statut',
+        'type_paiement',
     ];
 
     protected $casts = [
         'date_entree' => 'date',
         'date_livraison' => 'date',
         'date_essiage' => 'date',
+        'date_fait' => 'date',
         'prix_dhs' => 'decimal:2',
         'montant_comptabilise' => 'decimal:2',
         'prix_comptabilise' => 'decimal:2',
@@ -46,6 +54,33 @@ class Travail extends Model
     public const STATUT_ANNULE = 'annule';
     public const STATUT_A_REFAIRE = 'a_refaire';
 
+    /** Statuts qui font entrer le travail dans une situation, à la date du jour où il est marqué ainsi. */
+    public static function statutsFaits(): array
+    {
+        return [self::STATUT_TERMINE, self::STATUT_LIVRER];
+    }
+
+    /**
+     * Date de situation : le jour où le travail passe Terminé ou Livré.
+     * Conservée tant qu'il reste dans ces statuts ; effacée s'il redevient en cours.
+     */
+    public static function dateFaitForStatutChange(string $previousStatut, mixed $previousDateFait, string $newStatut): ?string
+    {
+        $done = self::statutsFaits();
+        if (! in_array($newStatut, $done, true)) {
+            return null;
+        }
+        if (in_array($previousStatut, $done, true) && $previousDateFait) {
+            if ($previousDateFait instanceof \DateTimeInterface) {
+                return $previousDateFait->format('Y-m-d');
+            }
+
+            return (string) $previousDateFait;
+        }
+
+        return now()->toDateString();
+    }
+
     public static function statutLabels(): array
     {
         return [
@@ -57,6 +92,26 @@ class Travail extends Model
             self::STATUT_A_REFAIRE => 'À refaire',
             self::STATUT_ANNULE => 'Annulé',
         ];
+    }
+
+    public static function paiementLabels(): array
+    {
+        return [
+            self::PAIEMENT_NON_PAYE => 'Non payé',
+            self::PAIEMENT_PARTIEL => 'Partiellement payé',
+            self::PAIEMENT_PAYE => 'Payé',
+        ];
+    }
+
+    public function getPaiementLabelAttribute(): string
+    {
+        return self::paiementLabels()[$this->paiement_statut ?? self::PAIEMENT_NON_PAYE]
+            ?? ($this->paiement_statut ?? self::PAIEMENT_NON_PAYE);
+    }
+
+    public function isPaiementEffectue(): bool
+    {
+        return in_array($this->paiement_statut, [self::PAIEMENT_PARTIEL, self::PAIEMENT_PAYE], true);
     }
 
     /**

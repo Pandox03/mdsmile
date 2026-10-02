@@ -40,6 +40,15 @@
                 <label class="mb-1 block text-xs font-medium text-zinc-500">Date au</label>
                 <input type="date" name="date_au" value="{{ request('date_au') }}" class="auth-input w-full rounded-lg border border-zinc-600 bg-zinc-800/90 py-2.5 text-sm text-zinc-100 focus:border-[#967A4B] focus:outline-none focus:ring-1 focus:ring-[#967A4B]/30">
             </div>
+            <div class="min-w-[160px]">
+                <label class="mb-1 block text-xs font-medium text-zinc-500">Paiement</label>
+                <select name="statut_paiement" class="auth-input w-full rounded-lg border border-zinc-600 bg-zinc-800/90 px-3 py-2.5 text-sm text-zinc-100 focus:border-[#967A4B] focus:outline-none focus:ring-1 focus:ring-[#967A4B]/30">
+                    <option value="">— Tous —</option>
+                    @foreach($statutPaiementLabels as $value => $label)
+                    <option value="{{ $value }}" {{ request('statut_paiement') === $value ? 'selected' : '' }}>{{ $label }}</option>
+                    @endforeach
+                </select>
+            </div>
             <div class="min-w-[200px]">
                 <label class="mb-1 block text-xs font-medium text-zinc-500">Recherche client (texte)</label>
                 <input type="text" name="recherche_client" value="{{ request('recherche_client') }}" placeholder="Nom client..." class="auth-input w-full rounded-lg border border-zinc-600 bg-zinc-800/90 py-2.5 text-sm text-zinc-100 placeholder-zinc-500 focus:border-[#967A4B] focus:outline-none focus:ring-1 focus:ring-[#967A4B]/30">
@@ -139,6 +148,7 @@
                         <th class="px-3 py-3 font-semibold text-[#967A4B]">Date</th>
                         <th class="px-3 py-3 font-semibold text-[#967A4B]">Client</th>
                         <th class="px-3 py-3 font-semibold text-[#967A4B] text-right">Montant (DHS)</th>
+                        <th class="px-3 py-3 font-semibold text-[#967A4B]">Paiement</th>
                         <th class="px-3 py-3 font-semibold text-[#967A4B] w-24">Actions</th>
                     </tr>
                 </thead>
@@ -149,6 +159,12 @@
                         <td class="px-3 py-2.5 text-zinc-300">{{ $f->date_facture->format('d/m/Y') }}</td>
                         <td class="px-3 py-2.5 text-zinc-300">{{ $f->doc->name ?? '—' }}</td>
                         <td class="px-3 py-2.5 text-right text-zinc-200">{{ number_format($f->total_facture, 0, ',', ' ') }}</td>
+                        <td class="px-3 py-2.5 text-zinc-300">
+                            {{ $statutPaiementLabels[$f->statut_paiement ?? 'non_payee'] ?? '—' }}
+                            @if(($f->statut_paiement ?? '') === 'payee' && $f->type_paiement)
+                                <span class="block text-xs text-zinc-500">{{ $typePaiementLabels[$f->type_paiement] ?? $f->type_paiement }}</span>
+                            @endif
+                        </td>
                         <td class="px-3 py-2.5">
                             <div class="flex items-center gap-1.5">
                                 {{-- Voir --}}
@@ -187,7 +203,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="5" class="px-4 py-12 text-center text-zinc-500">Aucune facture trouvée.</td>
+                        <td colspan="6" class="px-4 py-12 text-center text-zinc-500">Aucune facture trouvée.</td>
                     </tr>
                     @endforelse
                 </tbody>

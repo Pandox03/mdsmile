@@ -9,6 +9,7 @@ use App\Models\PrestationCategory;
 use App\Models\Stock;
 use App\Models\Travail;
 use App\Models\TravailTooth;
+use App\Support\TypePaiement;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -189,6 +190,8 @@ class TravauxController extends Controller
         return view('travaux.index', [
             'travaux' => $travaux,
             'statutLabels' => Travail::statutLabels(),
+            'paiementLabels' => Travail::paiementLabels(),
+            'typePaiementLabels' => TypePaiement::labels(),
         ]);
     }
 
@@ -199,6 +202,8 @@ class TravauxController extends Controller
         return view('travaux.show', [
             'travail' => $travail,
             'statutLabels' => Travail::statutLabels(),
+            'paiementLabels' => Travail::paiementLabels(),
+            'typePaiementLabels' => TypePaiement::labels(),
         ]);
     }
 
@@ -229,6 +234,8 @@ class TravauxController extends Controller
             'prestationDefaultPrices' => $prestationDefaultPrices,
             'docOverridePrices' => $docOverridePrices,
             'statutLabels' => Travail::statutLabels(),
+            'paiementLabels' => Travail::paiementLabels(),
+            'typePaiementLabels' => TypePaiement::labels(),
         ]);
     }
 
@@ -244,6 +251,12 @@ class TravauxController extends Controller
             'date_essiage' => ['nullable', 'date'],
             'prix_dhs' => ['nullable', 'numeric', 'min:0'],
             'statut' => ['required', Rule::in(array_keys(Travail::statutLabels()))],
+            'paiement_statut' => ['nullable', Rule::in(array_keys(Travail::paiementLabels()))],
+            'type_paiement' => [
+                Rule::requiredIf(fn () => in_array($request->input('paiement_statut'), [Travail::PAIEMENT_PARTIEL, Travail::PAIEMENT_PAYE], true)),
+                'nullable',
+                Rule::in(TypePaiement::keys()),
+            ],
         ];
 
         if ($isNewDoc) {
@@ -316,7 +329,7 @@ class TravauxController extends Controller
             $typeTravail = count($prestationNames) === 1 ? reset($prestationNames) : 'Multiple prestations';
             $firstPrestationId = $teethWithPrestation[0]['prestation_id'] ?? null;
 
-            $travail->update([
+            $updateData = [
                 'doc_id' => $docId,
                 'prestation_id' => $firstPrestationId,
                 'dentiste' => $dentisteName,
@@ -329,7 +342,22 @@ class TravauxController extends Controller
                 'date_essiage' => $validated['date_essiage'] ?? null,
                 'prix_dhs' => $prixDhs,
                 'statut' => $validated['statut'],
-            ]);
+                'date_fait' => Travail::dateFaitForStatutChange(
+                    (string) $travail->statut,
+                    $travail->date_fait,
+                    (string) $validated['statut']
+                ),
+            ];
+
+            if (array_key_exists('paiement_statut', $validated) && $validated['paiement_statut'] !== null) {
+                $paiementStatut = $validated['paiement_statut'];
+                $updateData['paiement_statut'] = $paiementStatut;
+                $updateData['type_paiement'] = in_array($paiementStatut, [Travail::PAIEMENT_PARTIEL, Travail::PAIEMENT_PAYE], true)
+                    ? ($validated['type_paiement'] ?? null)
+                    : null;
+            }
+
+            $travail->update($updateData);
 
             foreach ($teethWithPrestation as $t) {
                 TravailTooth::create([
@@ -437,6 +465,10 @@ class TravauxController extends Controller
                 ]);
             }
             $travail->increment('prix_dhs', $newPhaseTotal);
+            // Keep billable amount in sync so situations include every added phase/case.
+            if ($travail->montant_comptabilise !== null) {
+                $travail->increment('montant_comptabilise', $newPhaseTotal);
+            }
             // Sync head facture pivot so it reflects full amount (all phases) for regrouper/PDF
             $travail->refresh();
             $headFacture = $travail->factures()->where('comptabilise_dans_restant', false)->first();
@@ -459,9 +491,41 @@ class TravauxController extends Controller
         $request->validate([
             'statut' => ['required', Rule::in(array_keys(Travail::statutLabels()))],
         ]);
-        $travail->update(['statut' => $request->input('statut')]);
+        $newStatut = (string) $request->input('statut');
+        $travail->update([
+            'statut' => $newStatut,
+            'date_fait' => Travail::dateFaitForStatutChange(
+                (string) $travail->statut,
+                $travail->date_fait,
+                $newStatut
+            ),
+        ]);
         ActivityLog::log(ActivityLog::ACTION_UPDATED, ActivityLog::SUBJECT_TRAVAIL, $travail->id, 'Statut travail ' . $travail->reference . ' modifié');
         return back()->with('success', 'Statut mis à jour.');
+    }
+
+    public function updatePaiement(Request $request, Travail $travail): RedirectResponse
+    {
+        $validated = $request->validate([
+            'paiement_statut' => ['required', Rule::in(array_keys(Travail::paiementLabels()))],
+            'type_paiement' => [
+                Rule::requiredIf(fn () => in_array($request->input('paiement_statut'), [Travail::PAIEMENT_PARTIEL, Travail::PAIEMENT_PAYE], true)),
+                'nullable',
+                Rule::in(TypePaiement::keys()),
+            ],
+        ]);
+
+        $paiementStatut = $validated['paiement_statut'];
+        $travail->update([
+            'paiement_statut' => $paiementStatut,
+            'type_paiement' => in_array($paiementStatut, [Travail::PAIEMENT_PARTIEL, Travail::PAIEMENT_PAYE], true)
+                ? ($validated['type_paiement'] ?? null)
+                : null,
+        ]);
+
+        ActivityLog::log(ActivityLog::ACTION_UPDATED, ActivityLog::SUBJECT_TRAVAIL, $travail->id, 'Paiement travail ' . $travail->reference . ' modifié');
+
+        return back()->with('success', 'Paiement mis à jour.');
     }
 
     public function updateMontantComptabilise(Request $request, Travail $travail): RedirectResponse

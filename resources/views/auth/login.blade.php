@@ -8,25 +8,40 @@
             </div>
         @endif
 
-        <form method="POST" action="{{ route('login') }}" class="space-y-5">
+        {{--
+            Shared clinic PCs / same LAN: never encourage browser password save or page cache.
+            autocomplete=off is ignored by some browsers; new-password + random name help more.
+        --}}
+        <form method="POST" action="{{ route('login') }}" class="space-y-5" autocomplete="off" data-lpignore="true" data-1p-ignore="true">
             @csrf
 
             <div>
-                <label for="email" class="mb-1.5 block text-sm font-medium text-zinc-300">Email</label>
-                <input id="email" type="email" name="email" value="{{ old('email') }}" required autofocus autocomplete="email" placeholder="votre@email.com"
+                <label for="login_email" class="mb-1.5 block text-sm font-medium text-zinc-300">Email</label>
+                <input id="login_email"
+                    type="email"
+                    name="email"
+                    value=""
+                    required
+                    autofocus
+                    autocomplete="off"
+                    autocapitalize="off"
+                    autocorrect="off"
+                    spellcheck="false"
+                    inputmode="email"
+                    placeholder="votre@email.com"
                     class="auth-input w-full rounded-lg border border-zinc-600 bg-zinc-800/90 px-4 py-3 text-zinc-100 placeholder-zinc-500 transition focus:border-[#967A4B] focus:outline-none focus:ring-2 focus:ring-[#967A4B]/30" />
             </div>
 
             <div>
-                <label for="password" class="mb-1.5 block text-sm font-medium text-zinc-300">Mot de passe</label>
-                <input id="password" type="password" name="password" required autocomplete="current-password" placeholder="••••••••"
+                <label for="login_password" class="mb-1.5 block text-sm font-medium text-zinc-300">Mot de passe</label>
+                <input id="login_password"
+                    type="password"
+                    name="password"
+                    value=""
+                    required
+                    autocomplete="new-password"
+                    placeholder="••••••••"
                     class="auth-input w-full rounded-lg border border-zinc-600 bg-zinc-800/90 px-4 py-3 text-zinc-100 placeholder-zinc-500 transition focus:border-[#967A4B] focus:outline-none focus:ring-2 focus:ring-[#967A4B]/30" />
-            </div>
-
-            <div class="flex items-center gap-2">
-                <input id="remember" type="checkbox" name="remember"
-                    class="auth-checkbox h-4 w-4 shrink-0 cursor-pointer rounded border-zinc-600 bg-zinc-800 focus:ring-2 focus:ring-[#967A4B]/50 focus:ring-offset-0 focus:ring-offset-transparent" />
-                <label for="remember" class="cursor-pointer text-sm text-zinc-400">Se souvenir de moi</label>
             </div>
 
             <button type="submit"
@@ -34,5 +49,6 @@
                 Connexion
             </button>
         </form>
+        <p class="mt-4 text-center text-xs text-zinc-500">Sur un PC partagé, ne cochez jamais « enregistrer le mot de passe » dans le navigateur.</p>
     </div>
 </x-layouts.auth>

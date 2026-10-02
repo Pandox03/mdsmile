@@ -238,12 +238,57 @@ $prestationGroups = $travail->teeth->filter(fn ($t) => $t->prestation_id !== nul
                 </div>
             </div>
 
-            {{-- Price (hidden for assistante) --}}
+            {{-- Price + paiement (hidden for assistante) --}}
             @hasanyrole('manager|secretaire')
-            <div>
-                <h3 class="mb-2 text-sm font-semibold text-[#967A4B]">Prix</h3>
-                <p class="text-xl font-bold text-[#967A4B]">Total Estimé: {{ number_format($travail->prix_actuel, 0, ',', ' ') }} DHS</p>
+            <div class="space-y-4">
+                <div>
+                    <h3 class="mb-2 text-sm font-semibold text-[#967A4B]">Prix</h3>
+                    <p class="text-xl font-bold text-[#967A4B]">Total Estimé: {{ number_format($travail->prix_actuel, 0, ',', ' ') }} DHS</p>
+                </div>
+                <div class="rounded-lg border border-zinc-700/60 bg-zinc-800/40 p-4">
+                    <h3 class="mb-3 text-sm font-semibold text-[#967A4B]">Paiement</h3>
+                    <form method="POST" action="{{ route('travaux.updatePaiement', $travail) }}" class="grid gap-3 sm:grid-cols-3 sm:items-end" id="travail-paiement-form">
+                        @csrf
+                        @method('PATCH')
+                        <div>
+                            <label class="mb-1 block text-xs font-medium text-zinc-500">Statut</label>
+                            <select name="paiement_statut" id="travail-paiement-statut" class="auth-input w-full rounded-lg border border-zinc-600 bg-zinc-800/90 px-3 py-2 text-sm text-zinc-100">
+                                @foreach($paiementLabels as $value => $label)
+                                <option value="{{ $value }}" {{ ($travail->paiement_statut ?? 'non_paye') === $value ? 'selected' : '' }}>{{ $label }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div id="travail-type-wrap" class="{{ in_array($travail->paiement_statut ?? 'non_paye', ['paye', 'partiel'], true) ? '' : 'hidden' }}">
+                            <label class="mb-1 block text-xs font-medium text-zinc-500">Type de paiement</label>
+                            <select name="type_paiement" id="travail-type-paiement" class="auth-input w-full rounded-lg border border-zinc-600 bg-zinc-800/90 px-3 py-2 text-sm text-zinc-100">
+                                <option value="">— Choisir —</option>
+                                @foreach($typePaiementLabels as $value => $label)
+                                <option value="{{ $value }}" {{ ($travail->type_paiement ?? '') === $value ? 'selected' : '' }}>{{ $label }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <button type="submit" class="rounded-lg border border-[#967A4B] bg-[#967A4B] px-4 py-2 text-sm font-medium text-black hover:bg-[#B8986B]">Enregistrer</button>
+                    </form>
+                </div>
             </div>
+            <script>
+            (function() {
+                var statut = document.getElementById('travail-paiement-statut');
+                var wrap = document.getElementById('travail-type-wrap');
+                var typeEl = document.getElementById('travail-type-paiement');
+                if (!statut) return;
+                function sync() {
+                    var paid = statut.value === 'paye' || statut.value === 'partiel';
+                    if (wrap) wrap.classList.toggle('hidden', !paid);
+                    if (typeEl) {
+                        typeEl.required = paid;
+                        if (!paid) typeEl.value = '';
+                    }
+                }
+                statut.addEventListener('change', sync);
+                sync();
+            })();
+            </script>
             @endhasanyrole
         </div>
     </div>
@@ -262,6 +307,12 @@ $prestationGroups = $travail->teeth->filter(fn ($t) => $t->prestation_id !== nul
         <a href="{{ route('travaux.edit', $travail) }}" class="inline-flex items-center gap-2 rounded-lg border border-[#967A4B]/50 bg-transparent px-4 py-2.5 text-sm font-medium text-[#967A4B] transition hover:bg-[#967A4B]/10">
             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
             Modifier
+        </a>
+        @endhasanyrole
+        @hasanyrole('manager|secretaire')
+        <a href="{{ route('bons-livraison.create', ['travail_id' => $travail->id]) }}" class="inline-flex items-center gap-2 rounded-lg border border-[#967A4B]/50 bg-transparent px-4 py-2.5 text-sm font-medium text-[#967A4B] transition hover:bg-[#967A4B]/10 no-print">
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+            Bon de livraison
         </a>
         @endhasanyrole
         <button type="button" onclick="window.print()" class="inline-flex items-center gap-2 rounded-lg border border-[#967A4B]/50 bg-transparent px-4 py-2.5 text-sm font-medium text-[#967A4B] transition hover:bg-[#967A4B]/10">

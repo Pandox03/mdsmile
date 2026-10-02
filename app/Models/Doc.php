@@ -27,6 +27,11 @@ class Doc extends Model
         return $this->hasMany(Facture::class);
     }
 
+    public function devisInvisalign(): HasMany
+    {
+        return $this->hasMany(DevisInvisalign::class);
+    }
+
     public function situationEncaissements(): HasMany
     {
         return $this->hasMany(DocSituationEncaissement::class, 'doc_id');

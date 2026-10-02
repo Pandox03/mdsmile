@@ -121,6 +121,25 @@
                         @endforeach
                     </select>
                 </div>
+                @hasanyrole('manager|secretaire')
+                <div>
+                    <label class="mb-1 block text-sm font-medium text-zinc-400">Paiement</label>
+                    <select name="paiement_statut" id="edit-paiement-statut" class="auth-input w-full rounded-lg border border-zinc-600 bg-zinc-800/90 px-4 py-2.5 text-zinc-100 focus:border-[#967A4B] focus:outline-none focus:ring-1 focus:ring-[#967A4B]/30">
+                        @foreach($paiementLabels as $value => $label)
+                            <option value="{{ $value }}" {{ old('paiement_statut', $travail->paiement_statut ?? 'non_paye') === $value ? 'selected' : '' }}>{{ $label }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div id="edit-type-wrap" class="{{ in_array(old('paiement_statut', $travail->paiement_statut ?? 'non_paye'), ['paye', 'partiel'], true) ? '' : 'hidden' }}">
+                    <label class="mb-1 block text-sm font-medium text-zinc-400">Type de paiement</label>
+                    <select name="type_paiement" id="edit-type-paiement" class="auth-input w-full rounded-lg border border-zinc-600 bg-zinc-800/90 px-4 py-2.5 text-zinc-100 focus:border-[#967A4B] focus:outline-none focus:ring-1 focus:ring-[#967A4B]/30">
+                        <option value="">— Choisir —</option>
+                        @foreach($typePaiementLabels as $value => $label)
+                            <option value="{{ $value }}" {{ old('type_paiement', $travail->type_paiement) === $value ? 'selected' : '' }}>{{ $label }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                @endhasanyrole
             </div>
         </div>
 
@@ -170,6 +189,23 @@ function travailForm() {
         addNewDoc: {{ old('add_new_doc', false) ? 'true' : 'false' }},
     };
 }
+(function() {
+    var statut = document.getElementById('edit-paiement-statut');
+    var wrap = document.getElementById('edit-type-wrap');
+    var typeEl = document.getElementById('edit-type-paiement');
+    if (statut) {
+        function sync() {
+            var paid = statut.value === 'paye' || statut.value === 'partiel';
+            if (wrap) wrap.classList.toggle('hidden', !paid);
+            if (typeEl) {
+                typeEl.required = paid;
+                if (!paid) typeEl.value = '';
+            }
+        }
+        statut.addEventListener('change', sync);
+        sync();
+    }
+})();
 (function() {
     var defaultPrices = window.MDSMILE_PRESTATION_DEFAULT_PRICES || {};
     var docOverrides = window.MDSMILE_DOC_OVERRIDE_PRICES || {};

@@ -8,10 +8,12 @@ use App\Models\Doc;
 use App\Models\Facture;
 use App\Models\Setting;
 use App\Models\Travail;
+use App\Support\TypePaiement;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class FacturesController extends Controller
@@ -35,6 +37,9 @@ class FacturesController extends Controller
         }
         if ($request->filled('date_au')) {
             $facturesQuery->whereDate('date_facture', '<=', $request->get('date_au'));
+        }
+        if ($request->filled('statut_paiement')) {
+            $facturesQuery->where('statut_paiement', $request->get('statut_paiement'));
         }
         $factures = $facturesQuery->get();
 
@@ -68,6 +73,8 @@ class FacturesController extends Controller
             'docs' => $docs,
             'factures' => $factures,
             'facturesRegroupement' => $facturesRegroupement,
+            'statutPaiementLabels' => Facture::statutPaiementLabels(),
+            'typePaiementLabels' => TypePaiement::labels(),
         ]);
     }
 
@@ -79,6 +86,8 @@ class FacturesController extends Controller
         return view('factures.create', [
             'docs' => $docs,
             'selectedDocId' => $docId,
+            'statutPaiementLabels' => Facture::statutPaiementLabels(),
+            'typePaiementLabels' => TypePaiement::labels(),
         ]);
     }
 
@@ -88,12 +97,20 @@ class FacturesController extends Controller
             'doc_id' => ['required', 'integer', 'exists:docs,id'],
             'date_facture' => ['required', 'date'],
             'montant' => ['required', 'numeric', 'min:0.01'],
+            'statut_paiement' => ['required', Rule::in(array_keys(Facture::statutPaiementLabels()))],
+            'type_paiement' => [
+                Rule::requiredIf(fn () => $request->input('statut_paiement') === Facture::STATUT_PAYEE),
+                'nullable',
+                Rule::in(TypePaiement::keys()),
+            ],
         ]);
 
         $doc = Doc::findOrFail($validated['doc_id']);
         $montant = (float) $validated['montant'];
+        $statut = $validated['statut_paiement'];
+        $typePaiement = $statut === Facture::STATUT_PAYEE ? ($validated['type_paiement'] ?? null) : null;
 
-        $facture = Cache::lock('facture_numero', 10)->block(10, function () use ($validated, $doc, $montant) {
+        $facture = Cache::lock('facture_numero', 10)->block(10, function () use ($validated, $doc, $montant, $statut, $typePaiement) {
             $prefix = trim(Setting::get('facture_prefix', 'FAC')) ?: 'FAC';
             $nextNum = max(1, (int) Setting::get('facture_prochain_numero', '1'));
             $numero = $prefix . '-' . str_pad((string) $nextNum, 3, '0', STR_PAD_LEFT);
@@ -103,6 +120,8 @@ class FacturesController extends Controller
                 'numero' => $numero,
                 'date_facture' => $validated['date_facture'],
                 'montant_comptabilise' => $montant,
+                'statut_paiement' => $statut,
+                'type_paiement' => $typePaiement,
             ]);
 
             Setting::set('facture_prochain_numero', (string) ($nextNum + 1));
@@ -187,6 +206,8 @@ class FacturesController extends Controller
 
         return view('factures.show', [
             'facture' => $facture,
+            'statutPaiementLabels' => Facture::statutPaiementLabels(),
+            'typePaiementLabels' => TypePaiement::labels(),
         ]);
     }
 
@@ -209,6 +230,8 @@ class FacturesController extends Controller
         return view('factures.edit', [
             'facture' => $facture,
             'docs' => $docs,
+            'statutPaiementLabels' => Facture::statutPaiementLabels(),
+            'typePaiementLabels' => TypePaiement::labels(),
         ]);
     }
 
@@ -218,12 +241,21 @@ class FacturesController extends Controller
             'doc_id' => ['required', 'integer', 'exists:docs,id'],
             'date_facture' => ['required', 'date'],
             'montant' => ['required', 'numeric', 'min:0.01'],
+            'statut_paiement' => ['required', Rule::in(array_keys(Facture::statutPaiementLabels()))],
+            'type_paiement' => [
+                Rule::requiredIf(fn () => $request->input('statut_paiement') === Facture::STATUT_PAYEE),
+                'nullable',
+                Rule::in(TypePaiement::keys()),
+            ],
         ]);
 
+        $statut = $validated['statut_paiement'];
         $facture->update([
             'doc_id' => $validated['doc_id'],
             'date_facture' => $validated['date_facture'],
             'montant_comptabilise' => (float) $validated['montant'],
+            'statut_paiement' => $statut,
+            'type_paiement' => $statut === Facture::STATUT_PAYEE ? ($validated['type_paiement'] ?? null) : null,
         ]);
 
         ActivityLog::log(ActivityLog::ACTION_UPDATED, ActivityLog::SUBJECT_FACTURE, $facture->id, 'Facture ' . $facture->numero . ' mise à jour');

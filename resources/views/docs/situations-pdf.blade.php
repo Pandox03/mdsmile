@@ -68,13 +68,14 @@
 
     <div class="doc-block">{{ $doc->name }}</div>
 
-    <p class="section-title">Détail des travaux (entrées sur la période)</p>
+    <p class="section-title">Détail des travaux terminés sur la période (date du jour marqué fait)</p>
 
     <table class="detail">
         <thead>
             <tr>
                 <th>PATIENT</th>
                 <th>N° FICHE</th>
+                <th>FAIT LE</th>
                 <th>NATURE DE PROTHÈSE</th>
                 <th class="amount">MONTANT</th>
             </tr>
@@ -83,10 +84,11 @@
             @foreach($groups as $group)
             @foreach($group['lines'] as $i => $line)
             <tr>
-                <td style="width: 18%;">{{ $group['patient'] }}</td>
-                <td style="width: 12%;">{{ $group['numero_fiche'] !== '' ? $group['numero_fiche'] : '—' }}</td>
-                <td class="nature-cell" style="width: 50%;">{{ $line['nature'] }}</td>
-                <td class="amount" style="width: 20%;">{{ $i === 0 ? number_format((float) $group['amount'], 0, ',', ' ') : ' ' }}</td>
+                <td style="width: 16%;">{{ $i === 0 ? $group['patient'] : '' }}</td>
+                <td style="width: 10%;">{{ $i === 0 ? ($group['numero_fiche'] !== '' ? $group['numero_fiche'] : '—') : '' }}</td>
+                <td style="width: 12%;">{{ $i === 0 ? ($group['date_fait'] !== '' ? $group['date_fait'] : '—') : '' }}</td>
+                <td class="nature-cell" style="width: 42%;">{{ $line['nature'] }}</td>
+                <td class="amount" style="width: 20%;">{{ number_format((float) ($line['amount'] ?? 0), 0, ',', ' ') }}</td>
             </tr>
             @endforeach
             @endforeach
@@ -94,7 +96,7 @@
         @if(count($groups) === 0)
         <tbody>
             <tr>
-                <td colspan="4" style="text-align: center; color: #666; font-style: italic;">Aucun travail sur cette période.</td>
+                <td colspan="5" style="text-align: center; color: #666; font-style: italic;">Aucun travail terminé sur cette période.</td>
             </tr>
         </tbody>
         @endif

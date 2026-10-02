@@ -17,6 +17,8 @@ class Facture extends Model
         'doc_id',
         'numero',
         'date_facture',
+        'statut_paiement',
+        'type_paiement',
         'montant_comptabilise',
         'comptabilise_dans_restant',
         'split_montants',
@@ -33,9 +35,20 @@ class Facture extends Model
     public static function statutPaiementLabels(): array
     {
         return [
-            self::STATUT_PAYEE => 'Payée',
             self::STATUT_NON_PAYEE => 'Non payée',
+            self::STATUT_PAYEE => 'Payée',
         ];
+    }
+
+    public function getStatutPaiementLabelAttribute(): string
+    {
+        return self::statutPaiementLabels()[$this->statut_paiement ?? self::STATUT_NON_PAYEE]
+            ?? ($this->statut_paiement ?? self::STATUT_NON_PAYEE);
+    }
+
+    public function isPayee(): bool
+    {
+        return ($this->statut_paiement ?? self::STATUT_NON_PAYEE) === self::STATUT_PAYEE;
     }
 
     public function doc(): BelongsTo

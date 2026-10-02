@@ -19,6 +19,8 @@
                                 ['label' => 'Calendrier', 'url' => route('calendrier.index')],
                                 ['label' => 'Clients', 'url' => route('clients.index')],
                                 ['label' => 'Factures', 'url' => route('factures.index')],
+                                ['label' => 'Devis Invisalign', 'url' => route('devis-invisalign.index')],
+                                ['label' => 'Bons de livraison', 'url' => route('bons-livraison.index')],
                                 ['label' => 'Situations doc', 'url' => route('doc.situations.index')],
                                 ['label' => 'Stock', 'url' => route('stock.index')],
                                 ['label' => 'Caisse', 'url' => route('caisse.index')],
@@ -190,6 +192,14 @@
                         <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                         <span>Facturation</span>
                     </a>
+                    <a href="{{ route('devis-invisalign.index') }}" class="flex items-center gap-3 rounded-lg px-4 py-3 {{ request()->routeIs('devis-invisalign.*') ? 'border border-[#967A4B]/50 bg-[#967A4B]/10 text-[#967A4B]' : 'text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-100' }}">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                        <span>Devis Invisalign</span>
+                    </a>
+                    <a href="{{ route('bons-livraison.index') }}" class="flex items-center gap-3 rounded-lg px-4 py-3 {{ request()->routeIs('bons-livraison.*') ? 'border border-[#967A4B]/50 bg-[#967A4B]/10 text-[#967A4B]' : 'text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-100' }}">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+                        <span>Bons de livraison</span>
+                    </a>
                     <a href="{{ route('doc.situations.index') }}" class="flex items-center gap-3 rounded-lg px-4 py-3 {{ request()->routeIs('doc.situations.*') ? 'border border-[#967A4B]/50 bg-[#967A4B]/10 text-[#967A4B]' : 'text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-100' }}">
                         <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm12-10a2 2 0 01-2 2h-2a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2z"/></svg>
                         <span>Situations doc</span>
@@ -277,6 +287,14 @@
             <a href="{{ route('factures.index') }}" class="flex flex-col items-center gap-1 rounded-lg px-3 py-2 {{ request()->routeIs('factures.*') ? 'bg-[#967A4B]/20 text-[#967A4B]' : 'text-zinc-500 hover:text-zinc-300' }}">
                 <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                 <span class="text-xs">Facturation</span>
+            </a>
+            <a href="{{ route('devis-invisalign.index') }}" class="flex flex-col items-center gap-1 rounded-lg px-3 py-2 {{ request()->routeIs('devis-invisalign.*') ? 'bg-[#967A4B]/20 text-[#967A4B]' : 'text-zinc-500 hover:text-zinc-300' }}">
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                <span class="text-xs">Devis Inv.</span>
+            </a>
+            <a href="{{ route('bons-livraison.index') }}" class="flex flex-col items-center gap-1 rounded-lg px-3 py-2 {{ request()->routeIs('bons-livraison.*') ? 'bg-[#967A4B]/20 text-[#967A4B]' : 'text-zinc-500 hover:text-zinc-300' }}">
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+                <span class="text-xs">Bons liv.</span>
             </a>
             <a href="{{ route('doc.situations.index') }}" class="flex flex-col items-center gap-1 rounded-lg px-3 py-2 {{ request()->routeIs('doc.situations.*') ? 'bg-[#967A4B]/20 text-[#967A4B]' : 'text-zinc-500 hover:text-zinc-300' }}">
                 <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm12-10a2 2 0 01-2 2h-2a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2z"/></svg>

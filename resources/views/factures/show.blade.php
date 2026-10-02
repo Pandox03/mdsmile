@@ -12,9 +12,17 @@
         <div class="rounded-xl border border-[#967A4B]/40 bg-zinc-900/80 px-5 py-4">
             <h1 class="text-xl font-bold text-[#967A4B]">Facture {{ $facture->numero }}</h1>
             <p class="mt-1 text-sm text-zinc-400">{{ $facture->date_facture->format('d/m/Y') }} — {{ $facture->doc->name }}</p>
-            <p class="mt-2 text-xs text-zinc-500">Facture liée aux travaux, sans statut de paiement.</p>
+            <p class="mt-2 text-sm text-zinc-300">
+                {{ $statutPaiementLabels[$facture->statut_paiement ?? 'non_payee'] ?? 'Non payée' }}
+                @if(($facture->statut_paiement ?? '') === 'payee' && $facture->type_paiement)
+                    — {{ $typePaiementLabels[$facture->type_paiement] ?? $facture->type_paiement }}
+                @endif
+            </p>
         </div>
         <div class="flex items-center gap-2">
+            <a href="{{ route('factures.edit', $facture) }}" class="inline-flex items-center gap-2 rounded-lg border border-zinc-600 px-4 py-2.5 text-sm font-medium text-zinc-400 hover:bg-zinc-800">
+                Modifier
+            </a>
             <a href="{{ route('factures.index') }}" class="inline-flex items-center gap-2 rounded-lg border border-zinc-600 px-4 py-2.5 text-sm font-medium text-zinc-400 hover:bg-zinc-800">
                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
                 Liste des factures
@@ -42,6 +50,10 @@
                 <p class="text-sm text-zinc-500">Facture n°</p>
                 <p class="font-bold text-[#967A4B]">{{ $facture->numero }}</p>
                 <p class="text-sm text-zinc-400">Date : {{ $facture->date_facture->format('d/m/Y') }}</p>
+                <p class="mt-2 text-sm text-zinc-400">Paiement : {{ $statutPaiementLabels[$facture->statut_paiement ?? 'non_payee'] ?? '—' }}</p>
+                @if(($facture->statut_paiement ?? '') === 'payee' && $facture->type_paiement)
+                <p class="text-sm text-zinc-300">Type : {{ $typePaiementLabels[$facture->type_paiement] ?? $facture->type_paiement }}</p>
+                @endif
             </div>
         </div>
 

@@ -15,8 +15,8 @@
 
     <div class="rounded-xl border border-[#967A4B]/40 bg-zinc-900/80 px-5 py-4">
         <h1 class="text-xl font-bold text-[#967A4B]">Situation mensuelle par dentiste (doc)</h1>
-        <p class="mt-1 text-sm text-zinc-400">Filtrer par plage de dates. Le report intègre les travaux passés et les encaissements enregistrés sur la période. Vous pouvez <strong class="text-zinc-300">ajouter ou supprimer un encaissement à tout moment</strong> en choisissant la <strong class="text-zinc-300">date du paiement</strong> (rétrodatage autorisé, pas de date future).</p>
-        <p class="mt-2 text-sm text-zinc-500">Les travaux <span class="text-zinc-300">Annulé</span> et <span class="text-zinc-300">À refaire</span> sont comptés à <strong class="text-zinc-300">0 DHS</strong>.</p>
+        <p class="mt-1 text-sm text-zinc-400">Un travail entre dans la situation le <strong class="text-zinc-300">jour où il est marqué Terminé ou Livré</strong>, pas à la date d’entrée. Exemple : entré en mai, terminé en juin → ligne de la situation de juin, puis report des mois suivants (juillet, etc.).</p>
+        <p class="mt-2 text-sm text-zinc-500">Les travaux encore en cours n’apparaissent pas. Le report reprend les travaux déjà terminés avant la période, moins les encaissements. Vous pouvez <strong class="text-zinc-300">ajouter ou supprimer un encaissement</strong> avec la <strong class="text-zinc-300">date du paiement</strong> (rétrodatage autorisé, pas de date future).</p>
     </div>
 
     <form method="GET" action="{{ route('doc.situations.index') }}" class="rounded-xl border border-[#967A4B]/20 bg-zinc-900/80 p-4">
@@ -102,6 +102,7 @@
                     <tr class="border-b border-[#967A4B]/30 bg-zinc-800/50">
                         <th class="px-4 py-3 font-semibold text-[#967A4B]">Patient</th>
                         <th class="px-4 py-3 font-semibold text-[#967A4B]">N° fiche</th>
+                        <th class="px-4 py-3 font-semibold text-[#967A4B]">Fait le</th>
                         <th class="px-4 py-3 font-semibold text-[#967A4B]">Nature de prothèse</th>
                         <th class="px-4 py-3 font-semibold text-[#967A4B] text-right">Montant (DHS)</th>
                     </tr>
@@ -114,16 +115,15 @@
                         @if($i === 0)
                         <td rowspan="{{ $lineCount }}" class="px-4 py-3 align-top text-zinc-200">{{ $group['patient'] }}</td>
                         <td rowspan="{{ $lineCount }}" class="px-4 py-3 align-top text-zinc-300">{{ $group['numero_fiche'] ?: '—' }}</td>
+                        <td rowspan="{{ $lineCount }}" class="px-4 py-3 align-top text-zinc-400">{{ $group['date_fait'] ?: '—' }}</td>
                         @endif
                         <td class="px-4 py-3 text-zinc-300">{{ $line['nature'] }}</td>
-                        @if($i === 0)
-                        <td rowspan="{{ $lineCount }}" class="px-4 py-3 text-right font-medium align-top text-zinc-200">{{ number_format((float) $group['amount'], 0, ',', ' ') }}</td>
-                        @endif
+                        <td class="px-4 py-3 text-right font-medium align-top text-zinc-200">{{ number_format((float) ($line['amount'] ?? 0), 0, ',', ' ') }}</td>
                     </tr>
                     @endforeach
                     @empty
                     <tr>
-                        <td colspan="4" class="px-4 py-8 text-center text-zinc-500">Aucun travail sur cette période.</td>
+                        <td colspan="5" class="px-4 py-8 text-center text-zinc-500">Aucun travail terminé sur cette période.</td>
                     </tr>
                     @endforelse
                 </tbody>

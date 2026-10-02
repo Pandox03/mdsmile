@@ -4,18 +4,22 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth as AuthFacade;
-use Illuminate\View\View;
 
 class AuthController extends Controller
 {
-    public function showLoginForm(Request $request): View
+    public function showLoginForm(Request $request): Response
     {
         // Ensure login form always carries a fresh CSRF token,
         // especially after idle timeout/session invalidation.
         $request->session()->regenerateToken();
 
-        return view('auth.login');
+        return response()
+            ->view('auth.login')
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate, private, max-age=0')
+            ->header('Pragma', 'no-cache')
+            ->header('Expires', '0');
     }
 
     public function login(Request $request): RedirectResponse
@@ -25,9 +29,8 @@ class AuthController extends Controller
             'password' => ['required'],
         ]);
 
-        $remember = $request->boolean('remember');
-
-        if (AuthFacade::attempt($credentials, $remember)) {
+        // Never persist login on shared clinic devices ("remember me" removed from UI).
+        if (AuthFacade::attempt($credentials, false)) {
             $request->session()->regenerate();
 
             return redirect()->intended(route('dashboard'));
@@ -35,7 +38,7 @@ class AuthController extends Controller
 
         return back()->withErrors([
             'email' => __('Les identifiants fournis sont incorrects.'),
-        ])->onlyInput('email');
+        ]);
     }
 
     public function logout(Request $request): RedirectResponse
