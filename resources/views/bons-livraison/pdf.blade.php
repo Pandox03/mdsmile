@@ -61,6 +61,9 @@
     </p>
     @endif
     <p class="meta-line"><strong>Patient :</strong> {{ $bon->patient_nom }}@if($bon->numero_fiche) — N° fiche {{ $bon->numero_fiche }}@endif</p>
+    @if(!empty($typePaiementLabel) && $typePaiementLabel !== '—')
+    <p class="meta-line"><strong>Type de paiement :</strong> {{ $typePaiementLabel }}</p>
+    @endif
 
     <p class="section-title">Détail du travail livré</p>
     <table class="detail">
@@ -94,7 +97,7 @@
         </tr>
         <tr class="recap-final">
             <td class="label">Type de paiement</td>
-            <td class="amount">{{ in_array($bon->paiement_statut, ['paye', 'partiel'], true) ? ($typePaiementLabel ?: '—') : '—' }}</td>
+            <td class="amount">{{ (!empty($typePaiementLabel) && $typePaiementLabel !== '—') ? $typePaiementLabel : '—' }}</td>
         </tr>
     </table>
 

@@ -211,10 +211,7 @@ class BonsLivraisonController extends Controller
     /** @param  array<string, mixed>  $validated */
     private function normalizePaiementFields(array $validated): array
     {
-        $statut = $validated['paiement_statut'] ?? BonLivraison::PAIEMENT_NON_PAYE;
-        if (! in_array($statut, [BonLivraison::PAIEMENT_PARTIEL, BonLivraison::PAIEMENT_PAYE], true)) {
-            $validated['type_paiement'] = null;
-        }
+        $validated['type_paiement'] = $validated['type_paiement'] ?? null;
 
         return $validated;
     }

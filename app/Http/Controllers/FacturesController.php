@@ -108,7 +108,7 @@ class FacturesController extends Controller
         $doc = Doc::findOrFail($validated['doc_id']);
         $montant = (float) $validated['montant'];
         $statut = $validated['statut_paiement'];
-        $typePaiement = $statut === Facture::STATUT_PAYEE ? ($validated['type_paiement'] ?? null) : null;
+        $typePaiement = $validated['type_paiement'] ?? null;
 
         $facture = Cache::lock('facture_numero', 10)->block(10, function () use ($validated, $doc, $montant, $statut, $typePaiement) {
             $prefix = trim(Setting::get('facture_prefix', 'FAC')) ?: 'FAC';
@@ -255,7 +255,7 @@ class FacturesController extends Controller
             'date_facture' => $validated['date_facture'],
             'montant_comptabilise' => (float) $validated['montant'],
             'statut_paiement' => $statut,
-            'type_paiement' => $statut === Facture::STATUT_PAYEE ? ($validated['type_paiement'] ?? null) : null,
+            'type_paiement' => $validated['type_paiement'] ?? null,
         ]);
 
         ActivityLog::log(ActivityLog::ACTION_UPDATED, ActivityLog::SUBJECT_FACTURE, $facture->id, 'Facture ' . $facture->numero . ' mise à jour');
