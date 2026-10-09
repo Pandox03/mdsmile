@@ -45,7 +45,7 @@
                     <th class="px-4 py-3 font-medium">Date</th>
                     <th class="px-4 py-3 font-medium">Client</th>
                     <th class="px-4 py-3 font-medium">Patient</th>
-                    <th class="px-4 py-3 font-medium text-right">Total TTC</th>
+                    <th class="px-4 py-3 font-medium text-right">Total HT</th>
                     <th class="px-4 py-3 font-medium text-right">Actions</th>
                 </tr>
             </thead>

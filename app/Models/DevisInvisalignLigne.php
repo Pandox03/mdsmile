@@ -13,6 +13,7 @@ class DevisInvisalignLigne extends Model
         'devis_invisalign_id',
         'sort_order',
         'designation',
+        'quantite',
         'arcade',
         'prix_unitaire',
         'total_ttc',
@@ -22,6 +23,7 @@ class DevisInvisalignLigne extends Model
     {
         return [
             'sort_order' => 'integer',
+            'quantite' => 'decimal:2',
             'prix_unitaire' => 'decimal:2',
             'total_ttc' => 'decimal:2',
         ];

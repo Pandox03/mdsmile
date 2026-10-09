@@ -1,5 +1,6 @@
 @php
     $isEdit = isset($bon);
+    $bon = $isEdit ? $bon : null;
     $prefill = $prefill ?? [];
     $v = function (string $key, $default = '') use ($isEdit, $bon, $prefill) {
         if ($isEdit) {
@@ -88,7 +89,7 @@
                 @endforeach
             </select>
         </div>
-        <div id="bl-type-wrap" class="sm:col-span-2 {{ in_array($v('paiement_statut', 'non_paye'), ['paye', 'partiel'], true) ? '' : 'hidden' }}">
+        <div id="bl-type-wrap" class="sm:col-span-2">
             <label class="mb-1 block text-xs font-medium text-zinc-500">Type de paiement</label>
             <select name="type_paiement" id="bl-type-paiement" class="auth-input w-full rounded-lg border border-zinc-600 bg-zinc-800/90 px-3 py-2.5 text-sm text-zinc-100">
                 <option value="">— Choisir —</option>
@@ -121,11 +122,7 @@
     function syncTypePaiement() {
         if (!paiementEl || !typeWrap) return;
         var paid = paiementEl.value === 'paye' || paiementEl.value === 'partiel';
-        typeWrap.classList.toggle('hidden', !paid);
-        if (typeEl) {
-            typeEl.required = paid;
-            if (!paid) typeEl.value = '';
-        }
+        if (typeEl) typeEl.required = paid;
     }
 
     function apply(data) {

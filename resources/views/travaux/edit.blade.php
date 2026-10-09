@@ -233,7 +233,6 @@ function travailForm() {
         window.MDSMILE_TEETH_LIST = (e && e.detail && e.detail.teeth) ? e.detail.teeth : (window.MDSMILE_TEETH_LIST || []);
         updatePrix();
     });
-    updatePrix();
 })();
 </script>
 <style>[x-cloak]{display:none!important}</style>

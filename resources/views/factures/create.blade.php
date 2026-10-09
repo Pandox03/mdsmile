@@ -47,7 +47,7 @@
                         @endforeach
                     </select>
                 </div>
-                <div id="facture-type-wrap" class="{{ old('statut_paiement', 'non_payee') === 'payee' ? '' : 'hidden' }}">
+                <div id="facture-type-wrap">
                     <label class="mb-1 block text-sm font-medium text-zinc-400">Type de paiement</label>
                     <select name="type_paiement" id="facture-type-paiement" class="auth-input w-full rounded-lg border border-zinc-600 bg-zinc-800/90 px-4 py-2.5 text-zinc-100 focus:border-[#967A4B] focus:outline-none focus:ring-1 focus:ring-[#967A4B]/30">
                         <option value="">— Choisir —</option>
@@ -77,11 +77,7 @@
     if (!statut) return;
     function sync() {
         var paid = statut.value === 'payee';
-        if (wrap) wrap.classList.toggle('hidden', !paid);
-        if (typeEl) {
-            typeEl.required = paid;
-            if (!paid) typeEl.value = '';
-        }
+        if (typeEl) typeEl.required = paid;
     }
     statut.addEventListener('change', sync);
     sync();

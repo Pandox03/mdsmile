@@ -20,7 +20,7 @@
             {{ $slot }}
         </main>
         <p class="mt-8 text-sm text-zinc-600">
-            &copy; {{ date('Y') }} {{ config('app.name') }}
+            &copy; {{ date('Y') }} MD Smile
         </p>
     </div>
     @livewireScripts

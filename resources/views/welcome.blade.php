@@ -82,7 +82,7 @@
 
         {{-- Footer --}}
         <footer class="border-t border-[#967A4B]/20 py-6 text-center text-sm text-zinc-600">
-            &copy; {{ date('Y') }} {{ config('app.name') }} — Laboratoire Dentaire
+            &copy; {{ date('Y') }} MD Smile
         </footer>
     </div>
     @livewireScripts

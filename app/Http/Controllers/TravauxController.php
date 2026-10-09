@@ -306,28 +306,33 @@ class TravauxController extends Controller
                 $dentisteName = $doc->name;
             }
 
-            foreach ($travail->teeth as $tt) {
-                if ($tt->stock_id !== null) {
-                    Stock::find($tt->stock_id)?->increment('quantity', $tt->quantity);
-                }
-            }
-            $travail->teeth()->delete();
+            $chartChanged = $this->syncTeethPreservingPhases($travail, $teethWithPrestation);
 
-            $computedPrix = 0;
-            $prestationNames = [];
-            foreach ($teethWithPrestation as $t) {
-                $prestation = Prestation::find($t['prestation_id']);
-                if ($prestation) {
-                    $computedPrix += (float) ($doc->getPriceForPrestation($prestation) ?? 0);
-                    $prestationNames[$prestation->id] = $prestation->name;
+            $prixDhs = (float) $travail->prix_dhs;
+            $typeTravail = $travail->type_travail;
+            $firstPrestationId = $travail->prestation_id;
+            if ($chartChanged) {
+                $recomputed = $this->prixFromAllTeeth($travail, $doc);
+                $submittedPrix = (float) ($validated['prix_dhs'] ?? 0);
+                $collapsedSum = 0.0;
+                foreach ($teethWithPrestation as $t) {
+                    $prestation = Prestation::find($t['prestation_id']);
+                    if ($prestation) {
+                        $collapsedSum += (float) ($doc->getPriceForPrestation($prestation) ?? 0);
+                    }
                 }
+                // The edit screen prices only the visible tooth, so a matching total is not a manual override.
+                $prixDhs = ($submittedPrix > 0 && abs($submittedPrix - $collapsedSum) > 0.05)
+                    ? $submittedPrix
+                    : $recomputed;
+                $names = $travail->teeth()->with('prestation')->get()
+                    ->map(fn ($row) => $row->prestation?->name)
+                    ->filter()
+                    ->unique()
+                    ->values();
+                $typeTravail = $names->count() === 1 ? $names->first() : 'Multiple prestations';
+                $firstPrestationId = $travail->teeth()->orderBy('phase')->orderBy('id')->value('prestation_id');
             }
-            $prixDhs = (float) ($validated['prix_dhs'] ?? 0);
-            if ($prixDhs <= 0) {
-                $prixDhs = $computedPrix;
-            }
-            $typeTravail = count($prestationNames) === 1 ? reset($prestationNames) : 'Multiple prestations';
-            $firstPrestationId = $teethWithPrestation[0]['prestation_id'] ?? null;
 
             $updateData = [
                 'doc_id' => $docId,
@@ -357,18 +362,13 @@ class TravauxController extends Controller
                     : null;
             }
 
-            $travail->update($updateData);
-
-            foreach ($teethWithPrestation as $t) {
-                TravailTooth::create([
-                    'travail_id' => $travail->id,
-                    'tooth_number' => $t['tooth_number'],
-                    'prestation_id' => $t['prestation_id'],
-                    'phase' => 1,
-                    'stock_id' => null,
-                    'quantity' => 1,
-                ]);
+            if (! $chartChanged) {
+                unset($updateData['prix_dhs']);
+            } elseif ($travail->montant_comptabilise !== null && abs((float) $travail->montant_comptabilise - (float) $travail->prix_dhs) < 0.05) {
+                $updateData['montant_comptabilise'] = $prixDhs;
             }
+
+            $travail->update($updateData);
 
             // Keep stored facture in sync: if this travail has exactly one facture with only this travail, update its date.
             $travail->load('factures');
@@ -547,6 +547,76 @@ class TravauxController extends Controller
         }
         ActivityLog::log(ActivityLog::ACTION_UPDATED, ActivityLog::SUBJECT_TRAVAIL, $travail->id, 'Montant comptabilisé travail ' . $travail->reference);
         return redirect()->route('factures.index')->with('success', 'Montant comptabilisé enregistré. Le reste est en page internes.');
+    }
+
+    /**
+     * The edit chart keeps one prestation per tooth (the latest phase).
+     * Saving a fiche or a date must not delete the other phases.
+     * Returns true when the chart itself changed.
+     */
+    private function syncTeethPreservingPhases(Travail $travail, array $teethWithPrestation): bool
+    {
+        $existing = $travail->teeth()->orderBy('id')->get();
+        $lastByTooth = [];
+        foreach ($existing as $row) {
+            $lastByTooth[(int) $row->tooth_number] = $row;
+        }
+
+        $submitted = [];
+        foreach ($teethWithPrestation as $t) {
+            $submitted[(int) $t['tooth_number']] = (int) $t['prestation_id'];
+        }
+        ksort($submitted);
+
+        $collapsed = [];
+        foreach ($lastByTooth as $tooth => $row) {
+            $collapsed[(int) $tooth] = (int) $row->prestation_id;
+        }
+        ksort($collapsed);
+
+        if ($collapsed === $submitted) {
+            return false;
+        }
+
+        $removed = $existing->filter(fn ($row) => ! array_key_exists((int) $row->tooth_number, $submitted));
+        foreach ($removed as $row) {
+            if ($row->stock_id !== null) {
+                Stock::find($row->stock_id)?->increment('quantity', $row->quantity);
+            }
+            $row->delete();
+        }
+
+        foreach ($submitted as $tooth => $prestationId) {
+            if (! isset($lastByTooth[$tooth])) {
+                TravailTooth::create([
+                    'travail_id' => $travail->id,
+                    'tooth_number' => $tooth,
+                    'prestation_id' => $prestationId,
+                    'phase' => 1,
+                    'stock_id' => null,
+                    'quantity' => 1,
+                ]);
+                continue;
+            }
+            $visible = $lastByTooth[$tooth];
+            if ((int) $visible->prestation_id !== $prestationId) {
+                $visible->update(['prestation_id' => $prestationId]);
+            }
+        }
+
+        return true;
+    }
+
+    private function prixFromAllTeeth(Travail $travail, Doc $doc): float
+    {
+        $sum = 0.0;
+        foreach ($travail->teeth()->with('prestation')->get() as $tooth) {
+            if ($tooth->prestation) {
+                $sum += (float) ($doc->getPriceForPrestation($tooth->prestation) ?? 0);
+            }
+        }
+
+        return round($sum, 2);
     }
 
     public function destroy(Travail $travail): RedirectResponse

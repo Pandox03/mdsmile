@@ -72,6 +72,7 @@
     </div>
 
     <div class="facture-num">FACTURE N°{{ $facture->numero }}</div>
+    @include('factures.partials.pdf-paiement')
 
     <table>
         <thead>
@@ -165,6 +166,7 @@
                 @if($facture->doc->numero_registration)<div class="client-ice">ICE : {{ $facture->doc->numero_registration }}</div>@endif
             </div>
             <div class="facture-num">FACTURE N°{{ $facture->numero }} — Partie {{ $i + 1 }}/{{ count($splitMontants) }}</div>
+            @include('factures.partials.pdf-paiement')
             @php
                 $partTTC = $part;
                 $partTVA = round($partTTC * ($tvaRate ?? 20) / 100, 2);

@@ -159,7 +159,7 @@
 
         <div class="flex flex-1">
             {{-- Sidebar --}}
-            <aside class="hidden w-64 flex-shrink-0 border-r border-[#967A4B]/20 bg-zinc-900/50 lg:block">
+            <aside class="hidden w-64 shrink-0 self-start border-r border-[#967A4B]/20 bg-zinc-900/50 lg:sticky lg:top-16 lg:block lg:h-[calc(100vh-4rem)] lg:overflow-y-auto">
                 <nav class="space-y-1 p-4">
                     <a href="{{ route('dashboard') }}" class="flex items-center gap-3 rounded-lg px-4 py-3 {{ request()->routeIs('dashboard') ? 'border border-[#967A4B]/50 bg-[#967A4B]/10 text-[#967A4B]' : 'text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-100' }}">
                         <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>

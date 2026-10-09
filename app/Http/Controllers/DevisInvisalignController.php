@@ -54,7 +54,7 @@ class DevisInvisalignController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        $validated = $this->validateDevis($request);
+        $validated = $this->withCalculatedTotals($this->validateDevis($request));
 
         $devis = Cache::lock('devis_invisalign_numero', 10)->block(10, function () use ($validated, $request) {
             $prefix = trim(Setting::get('devis_invisalign_prefix', 'DI')) ?: 'DI';
@@ -84,6 +84,7 @@ class DevisInvisalignController extends Controller
                 $devis->lignes()->create([
                     'sort_order' => $i,
                     'designation' => $row['designation'],
+                    'quantite' => (float) ($row['quantite'] ?? 1),
                     'arcade' => $row['arcade'] ?? null,
                     'prix_unitaire' => (float) ($row['prix_unitaire'] ?? 0),
                     'total_ttc' => (float) ($row['total_ttc'] ?? 0),
@@ -111,7 +112,7 @@ class DevisInvisalignController extends Controller
 
     public function update(Request $request, DevisInvisalign $devisInvisalign): RedirectResponse
     {
-        $validated = $this->validateDevis($request);
+        $validated = $this->withCalculatedTotals($this->validateDevis($request));
 
         $devisInvisalign->update([
             'date_devis' => $validated['date_devis'],
@@ -135,6 +136,7 @@ class DevisInvisalignController extends Controller
             $devisInvisalign->lignes()->create([
                 'sort_order' => $i,
                 'designation' => $row['designation'],
+                'quantite' => (float) ($row['quantite'] ?? 1),
                 'arcade' => $row['arcade'] ?? null,
                 'prix_unitaire' => (float) ($row['prix_unitaire'] ?? 0),
                 'total_ttc' => (float) ($row['total_ttc'] ?? 0),
@@ -192,10 +194,25 @@ class DevisInvisalignController extends Controller
             'societe_footer' => ['nullable', 'string', 'max:5000'],
             'lignes' => ['required', 'array', 'min:1'],
             'lignes.*.designation' => ['required', 'string', 'max:500'],
+            'lignes.*.quantite' => ['nullable', 'numeric', 'min:0'],
             'lignes.*.arcade' => ['nullable', 'string', 'max:255'],
             'lignes.*.prix_unitaire' => ['nullable', 'numeric', 'min:0'],
-            'lignes.*.total_ttc' => ['required', 'numeric', 'min:0'],
+            'lignes.*.total_ttc' => ['nullable', 'numeric', 'min:0'],
         ]);
+    }
+
+    /** Line total HT is quantity × unit price. The quote total is the sum of those lines. */
+    private function withCalculatedTotals(array $validated): array
+    {
+        foreach ($validated['lignes'] as $i => $row) {
+            $qty = ($row['quantite'] ?? null) === null || $row['quantite'] === ''
+                ? 1.0
+                : (float) $row['quantite'];
+            $validated['lignes'][$i]['quantite'] = $qty;
+            $validated['lignes'][$i]['total_ttc'] = round($qty * (float) ($row['prix_unitaire'] ?? 0), 2);
+        }
+
+        return $validated;
     }
 
     /** @param array<int, array<string, mixed>> $lignes */

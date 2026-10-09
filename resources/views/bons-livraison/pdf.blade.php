@@ -1,105 +1,110 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="utf-8">
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
     <title>Bon de livraison {{ $bon->numero }}</title>
     <style>
-        @page { margin: 14mm; }
-        body { font-family: DejaVu Sans, sans-serif; font-size: 10.5pt; color: #111; }
-        .hdr { width: 100%; margin-bottom: 14px; border-bottom: 2px solid #967A4B; padding-bottom: 10px; }
-        .hdr td { vertical-align: top; }
-        .logo { max-height: 52px; }
-        .lab { font-size: 9pt; color: #333; }
-        .right { text-align: right; }
-        .title { font-size: 16pt; font-weight: bold; color: #000; }
-        .meta { margin-top: 4px; font-size: 10pt; }
-        .box { border: 1px solid #444; padding: 10px 12px; margin-bottom: 12px; }
-        .box h3 { margin: 0 0 6px 0; font-size: 9pt; text-transform: uppercase; color: #555; border-bottom: 1px solid #ddd; padding-bottom: 3px; }
-        .row { margin: 3px 0; }
-        .label { color: #555; }
-        .details { white-space: pre-wrap; line-height: 1.45; margin-top: 4px; }
-        .badge { display: inline-block; padding: 3px 10px; border: 1px solid #000; font-weight: bold; font-size: 10pt; }
-        .badge-paye { background: #d1fae5; }
-        .badge-partiel { background: #fef3c7; }
-        .badge-non { background: #fee2e2; }
-        .sign { margin-top: 28px; width: 100%; }
-        .sign td { width: 50%; vertical-align: top; padding-top: 8px; }
-        .sign .line { margin-top: 36px; border-top: 1px solid #333; width: 80%; padding-top: 4px; font-size: 8.5pt; color: #555; }
-        .footer { margin-top: 20px; font-size: 8pt; color: #666; border-top: 1px solid #ccc; padding-top: 6px; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: DejaVu Sans, sans-serif; font-size: 11px; color: #1a1a1a; line-height: 1.45; padding: 16mm 18mm 32mm 18mm; background: #fff; }
+        .header { display: table; width: 100%; margin-bottom: 14px; }
+        .header-left { display: table-cell; width: 55%; vertical-align: top; }
+        .header-right { display: table-cell; width: 45%; text-align: right; vertical-align: top; }
+        .logo img { max-height: 64px; max-width: 150px; display: block; }
+        .date { font-size: 11px; color: #000; margin-bottom: 4px; }
+        .title-block { text-align: center; background: #d4a574; color: #000; padding: 11px 14px; margin-bottom: 10px; font-size: 15px; font-weight: bold; letter-spacing: 0.02em; }
+        .doc-block { background: #d4a574; color: #000; padding: 10px 16px; margin-bottom: 8px; font-size: 14px; font-weight: bold; }
+        .meta-line { margin-bottom: 6px; font-size: 11px; color: #333; }
+        .section-title { font-size: 11px; font-weight: bold; margin: 16px 0 8px; color: #000; padding-bottom: 4px; border-bottom: 2px solid #d4a574; }
+        table.detail { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+        table.detail th { font-size: 9.5px; font-weight: bold; padding: 9px 10px; text-align: left; border: 1px solid #000; background: #d4a574; color: #000; }
+        table.detail td { padding: 8px 10px; border: 1px solid #444; font-size: 10.5px; vertical-align: top; }
+        .details { white-space: pre-wrap; }
+        table.recap { width: 100%; border-collapse: collapse; margin-top: 4px; page-break-inside: avoid; }
+        table.recap td { padding: 9px 12px; border: 1px solid #5c5c5c; font-size: 11px; vertical-align: middle; }
+        table.recap td.label { width: 62%; }
+        table.recap td.amount { text-align: right; font-weight: 600; white-space: nowrap; width: 38%; }
+        table.recap .recap-title { background: #d4a574; font-weight: bold; font-size: 12px; text-align: center; padding: 11px; border: 1px solid #000; }
+        table.recap .recap-final .label,
+        table.recap .recap-final .amount { background: #d4a574; font-weight: bold; font-size: 12px; border: 1px solid #000; }
+        .sign { width: 100%; margin-top: 22px; page-break-inside: avoid; }
+        .sign td { width: 50%; vertical-align: top; padding: 8px 10px 0 0; font-size: 11px; }
+        .sign .line { margin-top: 36px; border-top: 1px solid #000; width: 85%; padding-top: 4px; font-size: 9px; color: #444; }
+        .footer { position: fixed; left: 18mm; right: 18mm; bottom: 10mm; padding-top: 8px; border-top: 1px solid #ccc; font-size: 9px; color: #333; }
     </style>
 </head>
 <body>
-    <table class="hdr">
+    <div class="header">
+        <div class="header-left">
+            @if(isset($logoPath) && file_exists($logoPath))
+            <div class="logo"><img src="{{ $logoPath }}" alt="{{ $labName ?? 'MD Smile' }}"></div>
+            @else
+            <span style="font-size: 17px; font-weight: bold;">{{ $labName ?? 'MD Smile' }}</span>
+            @endif
+        </div>
+        <div class="header-right">
+            <div class="date">Date : {{ $bon->date_livraison?->format('d/m/Y') }}</div>
+            <div class="date">Bon N° {{ $bon->numero }}</div>
+            @if($bon->reference_travail)
+            <div class="date">Réf. travail : {{ $bon->reference_travail }}</div>
+            @endif
+        </div>
+    </div>
+
+    <div class="title-block">BON DE LIVRAISON</div>
+    <div class="doc-block">{{ $bon->dentiste_nom }}</div>
+    @if($bon->doc && ($bon->doc->phone || $bon->doc->adresse))
+    <p class="meta-line">
+        @if($bon->doc->phone)Tél. {{ $bon->doc->phone }}@endif
+        @if($bon->doc->phone && $bon->doc->adresse) — @endif
+        @if($bon->doc->adresse){{ $bon->doc->adresse }}@endif
+    </p>
+    @endif
+    <p class="meta-line"><strong>Patient :</strong> {{ $bon->patient_nom }}@if($bon->numero_fiche) — N° fiche {{ $bon->numero_fiche }}@endif</p>
+
+    <p class="section-title">Détail du travail livré</p>
+    <table class="detail">
+        <thead>
+            <tr>
+                <th style="width:22%">Dents</th>
+                <th>Nature du travail</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>{{ $bon->dents ?: '—' }}</td>
+                <td class="details">{{ $bon->details_travail }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <table class="recap">
         <tr>
-            <td style="width:55%">
-                @if(isset($logoPath) && file_exists($logoPath))
-                <img class="logo" src="{{ $logoPath }}" alt="">
-                @endif
-                <div style="margin-top:6px;font-weight:bold;">{{ $labName }}</div>
-                @if(!empty($labAdresse))<div class="lab">{!! nl2br(e($labAdresse)) !!}</div>@endif
-                @if(!empty($labPhone) || !empty($labEmail))
-                <div class="lab">
-                    @if(!empty($labPhone))Tél. {{ $labPhone }}@endif
-                    @if(!empty($labPhone) && !empty($labEmail)) — @endif
-                    @if(!empty($labEmail)){{ $labEmail }}@endif
-                </div>
-                @endif
-            </td>
-            <td class="right" style="width:45%">
-                <div class="title">BON DE LIVRAISON</div>
-                <div class="meta"><strong>N°</strong> {{ $bon->numero }}</div>
-                <div class="meta"><strong>Date</strong> {{ $bon->date_livraison?->format('d/m/Y') }}</div>
-                @if($bon->reference_travail)
-                <div class="meta"><strong>Réf. travail</strong> {{ $bon->reference_travail }}</div>
-                @endif
-            </td>
+            <td colspan="2" class="recap-title">Paiement</td>
+        </tr>
+        @if($bon->montant !== null)
+        <tr>
+            <td class="label">Montant</td>
+            <td class="amount">{{ number_format((float) $bon->montant, 2, ',', ' ') }} {{ $devise ?? 'DHS' }}</td>
+        </tr>
+        @endif
+        <tr>
+            <td class="label">Statut</td>
+            <td class="amount">{{ $paiementLabel }}</td>
+        </tr>
+        <tr class="recap-final">
+            <td class="label">Type de paiement</td>
+            <td class="amount">{{ in_array($bon->paiement_statut, ['paye', 'partiel'], true) ? ($typePaiementLabel ?: '—') : '—' }}</td>
         </tr>
     </table>
 
-    <div class="box">
-        <h3>Dentiste / Cabinet</h3>
-        <div class="row"><span class="label">Nom :</span> <strong>{{ $bon->dentiste_nom }}</strong></div>
-        @if($bon->doc)
-        @if($bon->doc->phone)<div class="row"><span class="label">Tél :</span> {{ $bon->doc->phone }}</div>@endif
-        @if($bon->doc->adresse)<div class="row"><span class="label">Adresse :</span> {{ $bon->doc->adresse }}</div>@endif
-        @endif
-    </div>
-
-    <div class="box">
-        <h3>Patient</h3>
-        <div class="row"><span class="label">Nom :</span> <strong>{{ $bon->patient_nom }}</strong></div>
-        @if($bon->numero_fiche)<div class="row"><span class="label">N° fiche :</span> {{ $bon->numero_fiche }}</div>@endif
-    </div>
-
-    <div class="box">
-        <h3>Détail du travail livré</h3>
-        @if($bon->dents)<div class="row"><span class="label">Dents :</span> {{ $bon->dents }}</div>@endif
-        <div class="details">{{ $bon->details_travail }}</div>
-        @if($bon->montant !== null)
-        <div class="row" style="margin-top:8px;"><span class="label">Montant :</span> <strong>{{ number_format((float) $bon->montant, 2, ',', ' ') }} {{ $devise }}</strong></div>
-        @endif
-    </div>
-
-    <div class="box">
-        <h3>Statut de paiement</h3>
-        @php
-            $cls = match($bon->paiement_statut) {
-                'paye' => 'badge-paye',
-                'partiel' => 'badge-partiel',
-                default => 'badge-non',
-            };
-        @endphp
-        <span class="badge {{ $cls }}">{{ $paiementLabel }}</span>
-        @if(in_array($bon->paiement_statut, ['paye', 'partiel'], true) && !empty($typePaiementLabel) && $typePaiementLabel !== '—')
-        <div class="row" style="margin-top:8px;"><span class="label">Type :</span> <strong>{{ $typePaiementLabel }}</strong></div>
-        @endif
-    </div>
-
     @if($bon->observations)
-    <div class="box">
-        <h3>Observations</h3>
-        <div class="details">{{ $bon->observations }}</div>
-    </div>
+    <p class="section-title">Observations</p>
+    <table class="detail">
+        <tbody>
+            <tr><td class="details">{{ $bon->observations }}</td></tr>
+        </tbody>
+    </table>
     @endif
 
     <table class="sign">
@@ -116,6 +121,12 @@
         </tr>
     </table>
 
-    <div class="footer">Document remis avec la prothèse — {{ $labName }} — {{ $bon->numero }}</div>
+    <div class="footer">
+        <div style="font-weight:bold;">{{ $labName ?? 'MD Smile' }} — {{ $bon->numero }}</div>
+        @if($labPhone ?? null)<div>Tél. : {{ $labPhone }}</div>@endif
+        @if($labEmail ?? null)<div>Email : {{ $labEmail }}</div>@endif
+        @if($labAdresse ?? null)<div>{{ $labAdresse }}</div>@endif
+        <div>Document remis avec la prothèse</div>
+    </div>
 </body>
 </html>
