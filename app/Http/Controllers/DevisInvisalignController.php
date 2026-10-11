@@ -5,11 +5,13 @@ namespace App\Http\Controllers;
 use App\Models\DevisInvisalign;
 use App\Models\Doc;
 use App\Models\Setting;
+use App\Support\TypePaiement;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class DevisInvisalignController extends Controller
@@ -17,7 +19,7 @@ class DevisInvisalignController extends Controller
     public function index(Request $request): View
     {
         $docs = Doc::orderBy('name')->get();
-        $query = DevisInvisalign::query()->with('doc')->orderByDesc('date_devis')->orderByDesc('id');
+        $query = DevisInvisalign::query()->with('doc')->withSum('paiements', 'montant')->orderByDesc('date_devis')->orderByDesc('id');
 
         if ($request->filled('doc_id')) {
             $query->where('doc_id', $request->integer('doc_id'));
@@ -91,6 +93,8 @@ class DevisInvisalignController extends Controller
                 ]);
             }
 
+            $this->syncPaiements($devis, $validated['paiements'] ?? []);
+
             Setting::set('devis_invisalign_prochain_numero', (string) ($nextNum + 1));
 
             return $devis;
@@ -101,7 +105,7 @@ class DevisInvisalignController extends Controller
 
     public function edit(DevisInvisalign $devisInvisalign): View
     {
-        $devisInvisalign->load('lignes');
+        $devisInvisalign->load(['lignes', 'paiements']);
 
         return view('devis-invisalign.edit', [
             'devis' => $devisInvisalign,
@@ -143,6 +147,7 @@ class DevisInvisalignController extends Controller
             ]);
         }
         $devisInvisalign->recalculeTotal();
+        $this->syncPaiements($devisInvisalign, $validated['paiements'] ?? []);
 
         return redirect()->route('devis-invisalign.edit', $devisInvisalign)->with('success', 'Devis Invisalign mis à jour.');
     }
@@ -156,7 +161,7 @@ class DevisInvisalignController extends Controller
 
     public function pdf(DevisInvisalign $devisInvisalign): Response
     {
-        $devisInvisalign->load(['doc', 'lignes']);
+        $devisInvisalign->load(['doc', 'lignes', 'paiements']);
         $labName = Setting::get('lab_name', 'MD Smile');
         $logoPath = public_path('images/mdsmile-logo.png');
         $devise = Setting::get('facture_devise', 'DHS');
@@ -181,7 +186,7 @@ class DevisInvisalignController extends Controller
 
     private function validateDevis(Request $request): array
     {
-        return $request->validate([
+        $rules = [
             'doc_id' => ['nullable', 'integer', 'exists:docs,id'],
             'date_devis' => ['required', 'date'],
             'client_nom' => ['required', 'string', 'max:255'],
@@ -198,7 +203,50 @@ class DevisInvisalignController extends Controller
             'lignes.*.arcade' => ['nullable', 'string', 'max:255'],
             'lignes.*.prix_unitaire' => ['nullable', 'numeric', 'min:0'],
             'lignes.*.total_ttc' => ['nullable', 'numeric', 'min:0'],
-        ]);
+            'paiements' => ['nullable', 'array'],
+        ];
+
+        foreach ($request->input('paiements', []) as $i => $row) {
+            if (! is_array($row) || ! $this->paiementRowFilled($row)) {
+                continue;
+            }
+            $rules["paiements.$i.date_paiement"] = ['required', 'date'];
+            $rules["paiements.$i.montant"] = ['required', 'numeric', 'min:0.01'];
+            $rules["paiements.$i.type_paiement"] = ['required', Rule::in(TypePaiement::keys())];
+        }
+
+        return $request->validate($rules);
+    }
+
+    /** @param  array<string, mixed>  $row */
+    private function paiementRowFilled(array $row): bool
+    {
+        foreach (['date_paiement', 'montant', 'type_paiement'] as $key) {
+            if (isset($row[$key]) && $row[$key] !== '') {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /** @param  array<int, array<string, mixed>>  $rows */
+    private function syncPaiements(DevisInvisalign $devis, array $rows): void
+    {
+        $devis->paiements()->delete();
+        $order = 0;
+        foreach ($rows as $row) {
+            if (! is_array($row) || ! $this->paiementRowFilled($row)) {
+                continue;
+            }
+            $devis->paiements()->create([
+                'sort_order' => $order,
+                'date_paiement' => $row['date_paiement'],
+                'montant' => round((float) $row['montant'], 2),
+                'type_paiement' => $row['type_paiement'],
+            ]);
+            $order++;
+        }
     }
 
     /** Line total HT is quantity × unit price. The quote total is the sum of those lines. */

@@ -46,6 +46,8 @@
                     <th class="px-4 py-3 font-medium">Client</th>
                     <th class="px-4 py-3 font-medium">Patient</th>
                     <th class="px-4 py-3 font-medium text-right">Total HT</th>
+                    <th class="px-4 py-3 font-medium text-right">Payé</th>
+                    <th class="px-4 py-3 font-medium text-right">Reste</th>
                     <th class="px-4 py-3 font-medium text-right">Actions</th>
                 </tr>
             </thead>
@@ -56,7 +58,13 @@
                     <td class="px-4 py-3 text-zinc-400">{{ $d->date_devis?->format('d/m/Y') }}</td>
                     <td class="px-4 py-3">{{ $d->client_nom }}</td>
                     <td class="px-4 py-3">{{ $d->patient_nom }}</td>
+                    @php
+                        $paye = (float) ($d->paiements_sum_montant ?? 0);
+                        $reste = round((float) $d->total_ttc - $paye, 2);
+                    @endphp
                     <td class="px-4 py-3 text-right tabular-nums">{{ number_format((float) $d->total_ttc, 2, ',', ' ') }}</td>
+                    <td class="px-4 py-3 text-right tabular-nums">{{ number_format($paye, 2, ',', ' ') }}</td>
+                    <td class="px-4 py-3 text-right tabular-nums">{{ number_format($reste, 2, ',', ' ') }}</td>
                     <td class="px-4 py-3 text-right">
                         <div class="flex flex-wrap justify-end gap-2">
                             <a href="{{ route('devis-invisalign.pdf', $d) }}" target="_blank" class="rounded border border-zinc-600 px-2 py-1 text-xs text-zinc-300 hover:border-[#967A4B] hover:text-[#967A4B]">PDF</a>
@@ -71,7 +79,7 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="6" class="px-4 py-10 text-center text-zinc-500">Aucun devis. Créez-en un avec « Nouveau devis ».</td>
+                    <td colspan="8" class="px-4 py-10 text-center text-zinc-500">Aucun devis. Créez-en un avec « Nouveau devis ».</td>
                 </tr>
                 @endforelse
             </tbody>

@@ -53,6 +53,14 @@ class DevisInvisalign extends Model
             ->orderBy('id');
     }
 
+    public function paiements(): HasMany
+    {
+        return $this->hasMany(DevisInvisalignPaiement::class, 'devis_invisalign_id')
+            ->orderBy('date_paiement')
+            ->orderBy('sort_order')
+            ->orderBy('id');
+    }
+
     public function recalculeTotal(): void
     {
         $sum = (float) $this->lignes()->sum('total_ttc');

@@ -92,6 +92,43 @@
         Arrêté le présent devis à la somme de {{ \App\Helpers\NumberToFrench::toLetters((float) $devis->total_ttc, 'dirhams') }}.
     </div>
 
+    @if($devis->paiements->isNotEmpty())
+    @php
+        $resteCourant = (float) $devis->total_ttc;
+        $totalPaye = 0.0;
+    @endphp
+    <p class="section-title">Paiements</p>
+    <table class="detail">
+        <thead>
+            <tr>
+                <th style="width:22%">Date</th>
+                <th style="width:28%">Type</th>
+                <th class="amount" style="width:25%">Montant</th>
+                <th class="amount" style="width:25%">Reste</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach($devis->paiements as $p)
+            @php
+                $totalPaye += (float) $p->montant;
+                $resteCourant = round($resteCourant - (float) $p->montant, 2);
+            @endphp
+            <tr>
+                <td>{{ $p->date_paiement?->format('d/m/Y') }}</td>
+                <td>{{ \App\Support\TypePaiement::label($p->type_paiement) }}</td>
+                <td class="amount">{{ number_format((float) $p->montant, 2, ',', ' ') }}</td>
+                <td class="amount">{{ number_format($resteCourant, 2, ',', ' ') }}</td>
+            </tr>
+            @endforeach
+            <tr class="total-row">
+                <td colspan="2">Reste à payer ({{ $devise ?? 'DHS' }})</td>
+                <td class="amount">{{ number_format($totalPaye, 2, ',', ' ') }} payé</td>
+                <td class="amount total-cell">{{ number_format(round((float) $devis->total_ttc - $totalPaye, 2), 2, ',', ' ') }}</td>
+            </tr>
+        </tbody>
+    </table>
+    @endif
+
     @if($devis->conditions_paiement)
     <p class="section-title">Conditions de paiement</p>
     <table class="recap">

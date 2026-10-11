@@ -148,6 +148,72 @@
         <p class="text-sm font-bold text-white">TOTAL HT : <span id="di-total-display" class="tabular-nums text-[#967A4B]">0,00</span></p>
     </div>
 
+    @php
+        $typePaiementLabels = \App\Support\TypePaiement::labels();
+        $paiementsOld = old('paiements');
+        if ($paiementsOld !== null) {
+            $paiementsRows = $paiementsOld;
+        } elseif ($isEdit && $devis->paiements->isNotEmpty()) {
+            $paiementsRows = $devis->paiements->map(fn ($p) => [
+                'date_paiement' => $p->date_paiement?->format('Y-m-d'),
+                'type_paiement' => $p->type_paiement,
+                'montant' => $p->montant,
+            ])->all();
+        } else {
+            $paiementsRows = [];
+        }
+    @endphp
+    <div class="mt-8">
+        <div class="mb-2 flex items-center justify-between">
+            <h2 class="text-xs font-bold uppercase tracking-wider text-white">Paiements</h2>
+            <button type="button" id="di-add-paiement" class="rounded border border-[#967A4B] bg-[#967A4B] px-3 py-1.5 text-xs font-semibold text-black hover:bg-[#B8986B]">+ Paiement</button>
+        </div>
+        <p class="mb-3 text-xs text-zinc-400">Chaque ligne est un encaissement. Le reste est le solde après ce paiement. Vous pouvez les modifier plus tard.</p>
+        <div class="overflow-x-auto border border-zinc-600">
+            <table class="w-full border-collapse text-xs sm:text-sm">
+                <thead>
+                    <tr class="bg-zinc-800 text-left text-[11px] font-bold uppercase text-white">
+                        <th class="border border-zinc-600 px-2 py-2">Date</th>
+                        <th class="border border-zinc-600 px-2 py-2">Type</th>
+                        <th class="w-32 border border-zinc-600 px-2 py-2 text-right">Montant</th>
+                        <th class="w-32 border border-zinc-600 px-2 py-2 text-right">Reste</th>
+                        <th class="w-10 border border-zinc-600 px-1 py-2"></th>
+                    </tr>
+                </thead>
+                <tbody id="di-paiements-body">
+                    @foreach($paiementsRows as $idx => $row)
+                    <tr class="di-paiement-row">
+                        <td class="border border-zinc-600 !bg-black p-0">
+                            <input type="date" name="paiements[{{ $idx }}][date_paiement]" value="{{ $row['date_paiement'] ?? '' }}" class="di-ligne-input di-pay-date w-full border-0 px-2 py-2 focus:ring-2 focus:ring-[#967A4B]/50" style="background-color:#000;color:#f4f4f5;-webkit-text-fill-color:#f4f4f5;">
+                        </td>
+                        <td class="border border-zinc-600 !bg-black p-0">
+                            <select name="paiements[{{ $idx }}][type_paiement]" class="di-pay-type w-full border-0 bg-black px-2 py-2 text-zinc-100 focus:ring-2 focus:ring-[#967A4B]/50">
+                                <option value="">—</option>
+                                @foreach($typePaiementLabels as $value => $label)
+                                <option value="{{ $value }}" {{ ($row['type_paiement'] ?? '') === $value ? 'selected' : '' }}>{{ $label }}</option>
+                                @endforeach
+                            </select>
+                        </td>
+                        <td class="border border-zinc-600 !bg-black p-0">
+                            <input type="number" step="0.01" min="0" name="paiements[{{ $idx }}][montant]" value="{{ $row['montant'] ?? '' }}" class="di-ligne-input di-pay-montant w-full border-0 px-2 py-2 text-right focus:ring-2 focus:ring-[#967A4B]/50" style="background-color:#000;color:#f4f4f5;-webkit-text-fill-color:#f4f4f5;" placeholder="0">
+                        </td>
+                        <td class="border border-zinc-600 !bg-black p-0">
+                            <input type="text" readonly tabindex="-1" class="di-pay-reste w-full border-0 bg-black px-2 py-2 text-right font-semibold text-[#967A4B]" value="">
+                        </td>
+                        <td class="border border-zinc-600 p-1 text-center">
+                            <button type="button" class="di-remove-paiement text-red-400 hover:text-red-300" title="Retirer">&times;</button>
+                        </td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+        <div class="mt-3 flex justify-end gap-6 text-sm font-bold text-white">
+            <p>Payé : <span id="di-paye-display" class="tabular-nums text-[#967A4B]">0,00</span></p>
+            <p>Reste : <span id="di-reste-display" class="tabular-nums text-[#967A4B]">0,00</span></p>
+        </div>
+    </div>
+
     <div class="mt-8 space-y-4 border-t border-zinc-700 pt-6">
         <div>
             <label class="mb-1 block text-xs font-semibold uppercase text-zinc-300">Conditions de paiement</label>
@@ -223,6 +289,7 @@
             if (ht) sum += parseNum(ht.value);
         });
         totalEl.textContent = sum.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        refreshPaiements(sum);
     }
 
     function bindRow(row) {
@@ -261,6 +328,91 @@
             bindRow(tr);
             reindexRows();
             refreshTotal();
+        });
+    }
+
+    var payBody = document.getElementById('di-paiements-body');
+    var addPayBtn = document.getElementById('di-add-paiement');
+    var payeEl = document.getElementById('di-paye-display');
+    var resteEl = document.getElementById('di-reste-display');
+    var payTypes = @json($typePaiementLabels);
+
+    function money(n) {
+        return n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function reindexPaiements() {
+        if (!payBody) return;
+        payBody.querySelectorAll('.di-paiement-row').forEach(function(row, idx) {
+            row.querySelectorAll('input, select').forEach(function(inp) {
+                var name = inp.getAttribute('name');
+                if (name && name.indexOf('paiements[') === 0) {
+                    inp.setAttribute('name', name.replace(/paiements\[\d+\]/, 'paiements[' + idx + ']'));
+                }
+            });
+        });
+    }
+
+    function refreshPaiements(total) {
+        if (!payBody) return;
+        if (typeof total !== 'number') {
+            total = 0;
+            if (body) {
+                body.querySelectorAll('.di-ht').forEach(function(ht) { total += parseNum(ht.value); });
+            }
+        }
+        var running = total;
+        var paid = 0;
+        payBody.querySelectorAll('.di-paiement-row').forEach(function(row) {
+            var montantEl = row.querySelector('.di-pay-montant');
+            var resteInput = row.querySelector('.di-pay-reste');
+            var montant = montantEl ? parseNum(montantEl.value) : 0;
+            paid += montant;
+            running = Math.round((running - montant) * 100) / 100;
+            if (resteInput) resteInput.value = running.toFixed(2);
+        });
+        if (payeEl) payeEl.textContent = money(paid);
+        if (resteEl) resteEl.textContent = money(Math.round((total - paid) * 100) / 100);
+    }
+
+    function bindPaiement(row) {
+        row.querySelectorAll('.di-pay-montant').forEach(function(inp) {
+            inp.addEventListener('input', function() { refreshPaiements(); });
+        });
+        var rm = row.querySelector('.di-remove-paiement');
+        if (rm) {
+            rm.addEventListener('click', function() {
+                row.remove();
+                reindexPaiements();
+                refreshPaiements();
+            });
+        }
+    }
+
+    if (payBody) {
+        payBody.querySelectorAll('.di-paiement-row').forEach(bindPaiement);
+        refreshPaiements();
+    }
+
+    if (addPayBtn && payBody) {
+        addPayBtn.addEventListener('click', function() {
+            var idx = payBody.querySelectorAll('.di-paiement-row').length;
+            var options = '<option value="">—</option>';
+            Object.keys(payTypes).forEach(function(key) {
+                options += '<option value="' + key + '">' + payTypes[key] + '</option>';
+            });
+            var tr = document.createElement('tr');
+            tr.className = 'di-paiement-row';
+            tr.innerHTML =
+                '<td class="border border-zinc-600 !bg-black p-0"><input type="date" name="paiements[' + idx + '][date_paiement]" class="di-ligne-input di-pay-date w-full border-0 px-2 py-2 focus:ring-2 focus:ring-[#967A4B]/50" style="' + inputStyle + '"></td>' +
+                '<td class="border border-zinc-600 !bg-black p-0"><select name="paiements[' + idx + '][type_paiement]" class="di-pay-type w-full border-0 bg-black px-2 py-2 text-zinc-100 focus:ring-2 focus:ring-[#967A4B]/50">' + options + '</select></td>' +
+                '<td class="border border-zinc-600 !bg-black p-0"><input type="number" step="0.01" min="0" name="paiements[' + idx + '][montant]" class="di-ligne-input di-pay-montant w-full border-0 px-2 py-2 text-right focus:ring-2 focus:ring-[#967A4B]/50" style="' + inputStyle + '" placeholder="0"></td>' +
+                '<td class="border border-zinc-600 !bg-black p-0"><input type="text" readonly tabindex="-1" class="di-pay-reste w-full border-0 bg-black px-2 py-2 text-right font-semibold text-[#967A4B]" value=""></td>' +
+                '<td class="border border-zinc-600 p-1 text-center"><button type="button" class="di-remove-paiement text-red-400 hover:text-red-300" title="Retirer">&times;</button></td>';
+            payBody.appendChild(tr);
+            bindPaiement(tr);
+            reindexPaiements();
+            refreshPaiements();
         });
     }
 
